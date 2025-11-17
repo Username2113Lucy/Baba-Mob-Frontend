@@ -1,6 +1,16 @@
 import React, { useState, useEffect } from 'react';
 
-const API_BASE_URL = 'https://baba-mob-backend.onrender.com/customer_log';
+// ✅ Works in both environments
+const API_BASE = import.meta.env.VITE_API_BASE_URL || 
+  (window.location.hostname === 'localhost' 
+    ? 'http://localhost:5000' 
+    : 'https://baba-mob-backend.onrender.com');
+    
+// ✅ CORRECT: Use separate endpoints matching your backend routes
+const CUSTOMER_API = `${API_BASE}/customer_log/customers`;
+const PRODUCT_API = `${API_BASE}/products`;
+const VARIANT_API = `${API_BASE}/variants`;
+const WHATSAPP_API = `${API_BASE}/whatsapp`;
 
 export const Billing_page = () => {
   const [activeTab, setActiveTab] = useState(() => {
@@ -63,54 +73,51 @@ const [currentOffer, setCurrentOffer] = useState(''); // Temporary input value
   ]);
   const [savingVariants, setSavingVariants] = useState(false);
 
-  // Stock Management API Functions
-  const fetchStockData = async () => {
-    try {
-      setStockLoading(true);
-      const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
-      
-      // Fetch products and variants based on shop type
-      const productsResponse = await fetch(`${API_BASE_URL}/products?shopType=${shopType}`);
-      if (!productsResponse.ok) {
-        throw new Error(`Products fetch error: ${productsResponse.status}`);
-      }
-      const productsResult = await productsResponse.json();
-      
-      if (productsResult.success) {
-        setProducts(productsResult.data);
-      }
-
-      const variantsResponse = await fetch(`${API_BASE_URL}/variants?shopType=${shopType}`);
-      if (!variantsResponse.ok) {
-        throw new Error(`Variants fetch error: ${variantsResponse.status}`);
-      }
-      const variantsResult = await variantsResponse.json();
-      
-      if (variantsResult.success) {
-        setVariants(variantsResult.data);
-      }
-    } catch (error) {
-      console.error('Error fetching stock data:', error);
-      alert('Error fetching stock data: ' + error.message);
-    } finally {
-      setStockLoading(false);
+const fetchStockData = async () => {
+  try {
+    setStockLoading(true);
+    
+    // ✅ FIXED: Use the correct API base URL
+    const productsResponse = await fetch(`${PRODUCT_API}?shopType=${shopType}`);
+    if (!productsResponse.ok) {
+      throw new Error(`Products fetch error: ${productsResponse.status}`);
     }
-  };
+    const productsResult = await productsResponse.json();
+    
+    if (productsResult.success) {
+      setProducts(productsResult.data);
+    }
 
+    // ✅ FIXED: Use the correct API base URL for variants too
+    const variantsResponse = await fetch(`${VARIANT_API}?shopType=${shopType}`);
+    if (!variantsResponse.ok) {
+      throw new Error(`Variants fetch error: ${variantsResponse.status}`);
+    }
+    const variantsResult = await variantsResponse.json();
+    
+    if (variantsResult.success) {
+      setVariants(variantsResult.data);
+    }
+  } catch (error) {
+    console.error('Error fetching stock data:', error);
+    alert('Error fetching stock data: ' + error.message);
+  } finally {
+    setStockLoading(false);
+  }
+};
+
+// Update all these functions to use API_BASE instead of API_BASE_URL
 const saveProduct = async (productData) => {
   try {
-    const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
     
-    console.log('🔄 Sending product data:', productData); // Debug log
-    
-    const response = await fetch(`${API_BASE_URL}/products`, {
+      const response = await fetch(`${PRODUCT_API}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
         name: productData.name.toUpperCase(),
-        shopType: shopType // Make sure shopType is included
+        shopType: shopType
       })
     });
 
@@ -134,7 +141,6 @@ const saveProduct = async (productData) => {
 
   const saveVariants = async (variantsData) => {
     try {
-      const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
       
       const variantsToSave = variantsData.map(variant => ({
         productName: variant.productName,
@@ -146,7 +152,7 @@ const saveProduct = async (productData) => {
         shopType: shopType
       }));
 
-      const response = await fetch(`${API_BASE_URL}/variants/bulk`, {
+        const response = await fetch(`${VARIANT_API}/bulk`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -167,9 +173,8 @@ const saveProduct = async (productData) => {
 
   const updateProduct = async (productId, productData) => {
     try {
-      const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
       
-      const response = await fetch(`${API_BASE_URL}/products/${productId}`, {
+        const response = await fetch(`${PRODUCT_API}/${productId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -190,9 +195,8 @@ const saveProduct = async (productData) => {
 
   const deleteProduct = async (productId) => {
     try {
-      const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
       
-      const response = await fetch(`${API_BASE_URL}/products/${productId}`, {
+        const response = await fetch(`${PRODUCT_API}/${productId}`, {
         method: 'DELETE',
       });
 
@@ -209,9 +213,8 @@ const saveProduct = async (productData) => {
 
   const updateVariant = async (variantId, variantData) => {
     try {
-      const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
       
-      const response = await fetch(`${API_BASE_URL}/variants/${variantId}`, {
+        const response = await fetch(`${VARIANT_API}/${variantId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -232,9 +235,8 @@ const saveProduct = async (productData) => {
 
   const deleteVariant = async (variantId) => {
     try {
-      const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
       
-      const response = await fetch(`${API_BASE_URL}/variants/${variantId}`, {
+        const response = await fetch(`${VARIANT_API}/${variantId}`, {
         method: 'DELETE',
       });
 
@@ -545,7 +547,7 @@ const handleSaveProductForm = async (e) => {
         shopType: shopType // Always filter by current shop type
       }).toString();
       
-      const response = await fetch(`${API_BASE_URL}/customers?${queryParams}`);
+      const response = await fetch(`${CUSTOMER_API}?${queryParams}`);
       const result = await response.json();
       
       if (result.success) {
@@ -563,7 +565,7 @@ const handleSaveProductForm = async (e) => {
   const fetchFilteredCustomers = async (filters = {}) => {
     try {
       const queryParams = new URLSearchParams(filters).toString();
-      const response = await fetch(`${API_BASE_URL}/customers?${queryParams}`);
+      const response = await fetch(`${CUSTOMER_API}?${queryParams}`);
       const result = await response.json();
       
       if (result.success) {
@@ -579,7 +581,7 @@ const handleSaveProductForm = async (e) => {
 
   const createCustomer = async (customerData) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/customers`, {
+        const response = await fetch(`${CUSTOMER_API}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -605,7 +607,7 @@ const handleSaveProductForm = async (e) => {
 
   const updateCustomerStatus = async (customerId, status) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/customers/${customerId}/status`, {
+        const response = await fetch(`${CUSTOMER_API}/${customerId}/status`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -732,7 +734,7 @@ const newCustomer = {
         );
 
         if (selectedVariant) {
-          const decrementResponse = await fetch(`${import.meta.env.VITE_API_BASE_URL}/variants/${selectedVariant._id}/decrement`, {
+            const decrementResponse = await fetch(`${VARIANT_API}/${selectedVariant._id}/decrement`, {
             method: 'PUT',
             headers: {
               'Content-Type': 'application/json',
@@ -817,7 +819,7 @@ const handleAction = async (customerId, action) => {
   try {
     if (action === 'download') {
       // Your existing download code...
-      const response = await fetch(`${API_BASE_URL}/customers/${customerId}/download`);
+      const response = await fetch(`${CUSTOMER_API}/${customerId}/download`);
       
       if (!response.ok) {
         throw new Error('Failed to download PDF');
@@ -845,7 +847,7 @@ const handleAction = async (customerId, action) => {
       // Create a hidden iframe and trigger print immediately
       const iframe = document.createElement('iframe');
       iframe.style.display = 'none';
-      iframe.src = `${API_BASE_URL}/customers/${customerId}/print`;
+      iframe.src = `${CUSTOMER_API}/${customerId}/print`;
       document.body.appendChild(iframe);
 
       // Wait for iframe to load then print
@@ -870,7 +872,7 @@ const handleAction = async (customerId, action) => {
         } catch (error) {
           // If direct print fails, fallback to opening in new tab
           console.warn('Direct print failed, opening in new tab:', error);
-          window.open(`${API_BASE_URL}/customers/${customerId}/print`, '_blank');
+          window.open(`${CUSTOMER_API}/${customerId}/print`, '_blank');
           setActionStatus(prev => ({
             ...prev,
             [customerId]: '🖨️ Opened for printing'
@@ -1071,8 +1073,7 @@ const calculateSummary = () => {
       }
 
       // Update in backend
-      const response = await fetch(`${API_BASE_URL}/customers/${customerId}`, {
-        method: 'PUT',
+        const response = await fetch(`${CUSTOMER_API}/${customerId}`, {        method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
         },
@@ -1116,7 +1117,7 @@ const calculateSummary = () => {
   // Handle expected delivery date save to backend
   const handleExpectedDeliverySave = async (customerId, value) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/customers/${customerId}`, {
+        const response = await fetch(`${CUSTOMER_API}/${customerId}`, {        
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -1192,7 +1193,7 @@ const calculateSummary = () => {
     }
 
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/variants/${variantId}`, {
+        const response = await fetch(`${VARIANT_API}/${variantId}`, {        
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -1234,7 +1235,7 @@ const calculateSummary = () => {
     if (newPrice < 0) return;
     
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/variants/${variantId}`, {
+        const response = await fetch(`${VARIANT_API}/${variantId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -1268,7 +1269,7 @@ const calculateSummary = () => {
     if (newQuantity < 0) return;
     
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/variants/${variantId}`, {
+        const response = await fetch(`${VARIANT_API}/${variantId}`, { 
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -1365,7 +1366,7 @@ const handleWarrantyDaysSave = async (customerId, value) => {
   try {
     const warrantyDays = parseInt(value) || 0;
 
-    const response = await fetch(`${API_BASE_URL}/customers/${customerId}`, {
+      const response = await fetch(`${CUSTOMER_API}/${customerId}`, { 
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
@@ -1396,15 +1397,22 @@ const handleWarrantyDaysSave = async (customerId, value) => {
   }
 };
 
-// WhatsApp PDF Sender - Fixed with correct API endpoint
 const handleWhatsAppPDF = async (customerId) => {
+  // ✅ Clear previous status immediately
   setActionStatus(prev => ({
     ...prev,
     [customerId]: '❗ Checking WhatsApp connection...'
   }));
 
   try {
-    const statusResponse = await fetch('http://localhost:5000/whatsapp/status');
+    // ✅ Use the correct API base
+    
+    const statusResponse = await fetch(`${WHATSAPP_API}/status`);
+    
+    if (!statusResponse.ok) {
+      throw new Error('WhatsApp status check failed');
+    }
+    
     const statusResult = await statusResponse.json();
 
     if (!statusResult.ready) {
@@ -1416,60 +1424,36 @@ const handleWhatsAppPDF = async (customerId) => {
       [customerId]: '📡 Fetching customer data...'
     }));
 
-    // Try different possible API endpoints
+    // Get customer data
     let customer = null;
-    let customerShopType = null;
-
     try {
-      // Option 1: Try the direct customer endpoint
-      const customerResponse = await fetch(`http://localhost:5000/api/customers/${customerId}`);
+      const customerResponse = await fetch(`${CUSTOMER_API}/${customerId}`);
+      if (!customerResponse.ok) {
+        throw new Error('Failed to fetch customer data');
+      }
       const customerData = await customerResponse.json();
       
-      if (customerData.success && customerData.customer) {
-        customer = customerData.customer;
-        customerShopType = customer.shopType;
-      } else if (customerData.shopType) {
-        // Option 2: If the response has shopType directly
-        customerShopType = customerData.shopType;
+      if (customerData.success && customerData.data) {
+        customer = customerData.data;
       } else {
-        // Option 3: Try to get customer from the PDF generation or another endpoint
-        console.log('🔄 Trying alternative method to get customer shop type...');
-        
-        // Since we're sending to WhatsApp, let's use the shopType from your current context
-        // or make an educated guess based on available data
-        const allCustomersResponse = await fetch('http://localhost:5000/api/customers');
-        const allCustomers = await allCustomersResponse.json();
-        
-        if (allCustomers.success) {
-          const foundCustomer = allCustomers.customers.find(c => c._id === customerId);
-          if (foundCustomer) {
-            customerShopType = foundCustomer.shopType;
-          }
-        }
+        throw new Error('Customer not found');
       }
     } catch (fetchError) {
-      console.warn('⚠️ Could not fetch customer details, using current shop type:', fetchError);
-      // Fallback to current shopType from your component state
-      customerShopType = shopType;
+      console.error('Customer fetch error:', fetchError);
+      throw new Error('Failed to load customer details');
     }
 
-    // Final fallback - use current component shopType
-    if (!customerShopType) {
-      customerShopType = shopType;
-      console.log(`🔄 Using current component shopType: ${shopType}`);
-    }
-
-    // Select the correct offer message based on customer's shop type
+    // Select the correct offer message
+    const customerShopType = customer.shopType || shopType;
     const relevantOfferMessage = customerShopType === 'service' ? serviceOfferMessage : salesOfferMessage;
-
-    console.log(`📤 Sending to ${customerShopType} customer with ${relevantOfferMessage ? 'offer' : 'no offer'}`);
 
     setActionStatus(prev => ({
       ...prev,
       [customerId]: relevantOfferMessage ? '📩 Sending PDF with offer...' : '📩 Sending PDF...'
     }));
 
-    const response = await fetch('http://localhost:5000/whatsapp/send-pdf', {
+    // ✅ FIXED: Use correct API endpoint with proper error handling
+      const response = await fetch(`${WHATSAPP_API}/send-pdf`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -1480,6 +1464,11 @@ const handleWhatsAppPDF = async (customerId) => {
       })
     });
 
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || `Server error: ${response.status}`);
+    }
+
     const result = await response.json();
 
     if (result.success) {
@@ -1488,17 +1477,18 @@ const handleWhatsAppPDF = async (customerId) => {
         [customerId]: relevantOfferMessage ? '✅ PDF with Offer Sent!' : '✅ PDF Sent!'
       }));
     } else {
-      throw new Error(result.message);
+      throw new Error(result.message || 'Failed to send PDF');
     }
 
   } catch (error) {
-    console.error('Error:', error);
+    console.error('WhatsApp PDF Error:', error);
     setActionStatus(prev => ({
       ...prev,
-      [customerId]: '❌ ' + error.message
+      [customerId]: '❌ ' + (error.message || 'Failed to send PDF')
     }));
   }
 
+  // ✅ Clear status after delay
   setTimeout(() => {
     setActionStatus(prev => {
       const newStatus = { ...prev };
@@ -2783,26 +2773,30 @@ Thank you for shopping with us! 🎉`
                 <table className="w-full border-collapse">
                   <thead>
                     <tr className="bg-gradient-to-r from-orange-500 to-amber-500">
+                      {/* Basic columns */}
                       <th className="border border-orange-400 px-3 py-2 text-left font-bold text-white text-xs uppercase tracking-wider">Date & Time</th>
                       <th className="border border-orange-400 px-3 py-2 text-left font-bold text-white text-xs uppercase tracking-wider">Invoice No.</th>
                       <th className="border border-orange-400 px-3 py-2 text-left font-bold text-white text-xs uppercase tracking-wider">Customer Name</th>
                       <th className="border border-orange-400 px-3 py-2 text-left font-bold text-white text-xs uppercase tracking-wider">Phone</th>
                       <th className="border border-orange-400 px-3 py-2 text-left font-bold text-white text-xs uppercase tracking-wider">Brand</th>
                       
-                      {/* Conditionally render columns based on shop type */}
-                      {shopType === 'service' ? (
+                      {/* Service-specific columns */}
+                      {shopType === 'service' && (
                         <>
                           <th className="border border-orange-400 px-3 py-2 text-left font-bold text-white text-xs uppercase tracking-wider">Stock Item</th>
                           <th className="border border-orange-400 px-3 py-2 text-left font-bold text-white text-xs uppercase tracking-wider">Password</th>
                           <th className="border border-orange-400 px-3 py-2 text-center font-bold text-white text-xs uppercase tracking-wider">Issue</th>
                           <th className="border border-orange-400 px-3 py-2 text-left font-bold text-white text-xs uppercase tracking-wider">Expected Delivery</th>
-                          <th className="border border-orange-400 px-3 py-2 text-left font-bold text-white text-xs uppercase tracking-wider w-30">Warranty Days</th> {/* ADD THIS */}
+                          <th className="border border-orange-400 px-3 py-2 text-left font-bold text-white text-xs uppercase tracking-wider w-30">Warranty Days</th>
                           <th className="border border-orange-400 px-3 py-2 text-center font-bold text-white text-xs uppercase tracking-wider">Status</th>
                           <th className="border border-orange-400 px-3 py-2 text-left font-bold text-white text-xs uppercase tracking-wider">Cost (₹)</th>
                           <th className="border border-orange-400 px-3 py-2 text-left font-bold text-white text-xs uppercase tracking-wider">Paid (₹)</th>
                           <th className="border border-orange-400 px-3 py-2 text-left font-bold text-white text-xs uppercase tracking-wider">Balance (₹)</th>
                         </>
-                      ) : (
+                      )}
+                      
+                      {/* Sales-specific columns */}
+                      {shopType === 'sales' && (
                         <>
                           <th className="border border-orange-400 px-3 py-2 text-left font-bold text-white text-xs uppercase tracking-wider">Model Item</th>
                           <th className="border border-orange-400 px-3 py-2 text-left font-bold text-white text-xs uppercase tracking-wider w-35">Warranty Days</th>
@@ -2811,6 +2805,7 @@ Thank you for shopping with us! 🎉`
                         </>
                       )}
                       
+                      {/* Actions column */}
                       <th className="border border-orange-400 px-3 py-2 text-center font-bold text-white text-xs uppercase tracking-wider">Actions</th>
                     </tr>
                   </thead>
