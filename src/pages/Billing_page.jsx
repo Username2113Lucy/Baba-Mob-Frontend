@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 
-const API_BASE_URL = 'https://your-render-backend-url.onrender.com/customer_log';
+const API_BASE_URL = 'https://baba-mob-backend.onrender.com/customer_log';
 
 export const Billing_page = () => {
   const [activeTab, setActiveTab] = useState(() => {
