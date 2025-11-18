@@ -792,22 +792,111 @@ const newCustomer = {
     }
   };
 
-  // Handle status change
-  const handleStatusChange = async (customerId, newStatus) => {
-    try {
-      await updateCustomerStatus(customerId, newStatus);
-      const updatedCustomers = customers.map(cust =>
-        cust._id === customerId ? { ...cust, status: newStatus } : cust
-      );
-      const updatedAllCustomers = allCustomers.map(cust =>
-        cust._id === customerId ? { ...cust, status: newStatus } : cust
-      );
-      setCustomers(updatedCustomers);
-      setAllCustomers(updatedAllCustomers);
-    } catch (error) {
-      alert('Error updating status: ' + error.message);
+// Handle status change - COMPLETE VERSION with stock management
+// Handle status change - ENHANCED with stock management
+const handleStatusChange = async (customerId, newStatus) => {
+  try {
+    const customer = customers.find(c => c._id === customerId);
+    const oldStatus = customer.status;
+    
+    console.log('🔄 Status Change:', { 
+      customerId, 
+      oldStatus, 
+      newStatus, 
+      paidAmount: customer.paidAmount, 
+      cost: customer.cost,
+      stock: customer.stock,
+      shopType: customer.shopType
+    });
+    
+    // 🎯 AUTO-CORRECTION: If fully paid, always set to 'paid'
+    if (customer.paidAmount >= customer.cost && newStatus === 'part paid') {
+      console.log('🎯 Auto-correcting: part paid → paid (fully paid)');
+      newStatus = 'paid';
     }
-  };
+    
+    if (newStatus === 'returned') {
+      console.log('🔄 Processing return...');
+      await handleReturnStatus(customerId);
+    } else {
+      console.log('🔄 Updating status to:', newStatus);
+      
+      // Handle stock changes when changing FROM returned status
+      if (oldStatus === 'returned' && newStatus !== 'returned') {
+        // If changing from returned to another status, decrement stock
+        if (customer.shopType === 'service' && customer.stock) {
+          console.log(`📦 Decrementing stock for: ${customer.stock}`);
+          await handleStockDecrement(customer.stock);
+        }
+      }
+      
+      // Handle stock changes when changing TO paid status
+      if (newStatus === 'paid' && oldStatus !== 'paid') {
+        // If changing to paid from non-paid status, ensure stock is decremented
+        if (customer.shopType === 'service' && customer.stock && oldStatus !== 'returned') {
+          console.log(`📦 Ensuring stock decrement for paid status: ${customer.stock}`);
+          await handleStockDecrement(customer.stock);
+        }
+      }
+      
+      const response = await fetch(`${CUSTOMER_API}/${customerId}/status`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ status: newStatus })
+      });
+
+      const result = await response.json();
+      console.log('✅ Status update result:', result);
+      
+      if (result.success) {
+        const updatedCustomers = customers.map(cust =>
+          cust._id === customerId ? result.data : cust
+        );
+        const updatedAllCustomers = allCustomers.map(cust =>
+          cust._id === customerId ? result.data : cust
+        );
+        setCustomers(updatedCustomers);
+        setAllCustomers(updatedAllCustomers);
+      } else {
+        throw new Error(result.message);
+      }
+    }
+  } catch (error) {
+    console.error('❌ Error updating status:', error);
+    alert('Error updating status: ' + error.message);
+  }
+};
+
+// Add this helper function for stock decrement - ENHANCED
+const handleStockDecrement = async (stockName) => {
+  try {
+    const variant = variants.find(v => v.variantName === stockName);
+    if (variant) {
+      const response = await fetch(`${VARIANT_API}/${variant._id}/decrement`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        if (result.success) {
+          // Refresh stock data to show updated quantities
+          await fetchStockData();
+          console.log(`✅ Stock decremented and refreshed: ${stockName}`);
+        }
+      }
+    } else {
+      console.warn(`⚠️ Variant not found for stock: ${stockName}`);
+    }
+  } catch (error) {
+    console.error('Error decrementing stock:', error);
+    // Don't fail the entire operation if stock update fails
+  }
+};
 
 // Handle actions (Print/Download) - Alternative approach
 const handleAction = async (customerId, action) => {
@@ -1024,87 +1113,101 @@ const calculateSummary = () => {
 
   const summary = calculateSummary();
 
-  // Handle paid amount change
-  const handlePaidAmountChange = (customerId, value) => {
-    const paidAmount = parseFloat(value) || 0;
-    const updatedCustomers = customers.map(cust => {
-      if (cust._id === customerId) {
-        const cost = cust.cost || 0;
-        const balance = cost - paidAmount;
-        let status = cust.status;
-        
-        // Auto-update status based on payment
-        if (paidAmount === 0) {
-          status = 'not paid';
-        } else if (paidAmount >= cost) {
-          status = 'paid';
-        } else if (paidAmount > 0 && paidAmount < cost) {
-          status = 'part paid';
-        }
-        
-        return {
-          ...cust,
-          paidAmount,
-          balance,
-          status
-        };
-      }
-      return cust;
-    });
-    
-    setCustomers(updatedCustomers);
-  };
-
-  // Handle paid amount save to backend
-  const handlePaidAmountSave = async (customerId, value) => {
-    try {
-      const paidAmount = parseFloat(value) || 0;
-      const customer = customers.find(c => c._id === customerId);
-      const cost = customer.cost || 0;
-      const balance = cost - paidAmount;
-      
-      let status = customer.status;
-      if (paidAmount === 0) {
-        status = 'not paid';
-      } else if (paidAmount >= cost) {
-        status = 'paid';
-      } else if (paidAmount > 0 && paidAmount < cost) {
-        status = 'part paid';
-      }
-
-      // Update in backend
-        const response = await fetch(`${CUSTOMER_API}/${customerId}`, {        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          paidAmount,
-          balance,
-          status
-        })
-      });
-
-      const result = await response.json();
-      
-      if (result.success) {
-        // Update both local states
-        const updatedCustomers = customers.map(cust =>
-          cust._id === customerId ? result.data : cust
-        );
-        const updatedAllCustomers = allCustomers.map(cust =>
-          cust._id === customerId ? result.data : cust
-        );
-        
-        setCustomers(updatedCustomers);
-        setAllCustomers(updatedAllCustomers);
-      } else {
-        throw new Error(result.message);
-      }
-    } catch (error) {
-      console.error('Error updating paid amount:', error);
-      alert('Error updating paid amount: ' + error.message);
+// Handle paid amount change - UPDATED with proper balance calculation
+const handlePaidAmountChange = (customerId, value) => {
+  const customer = customers.find(c => c._id === customerId);
+  
+  // Prevent changes for returned items
+  if (customer.status === 'returned') {
+    alert('Cannot modify paid amount for returned items');
+    return;
+  }
+  
+  const paidAmount = parseFloat(value) || 0;
+  const cost = customer.cost || 0;
+  
+  // Calculate balance correctly
+  const balance = Math.max(0, cost - paidAmount);
+  
+  let status = customer.status;
+  // Auto-update status based on payment
+  if (paidAmount === 0) {
+    status = 'not paid';
+  } else if (paidAmount >= cost) {
+    status = 'paid';
+  } else if (paidAmount > 0 && paidAmount < cost) {
+    status = 'part paid';
+  }
+  
+  const updatedCustomers = customers.map(cust => {
+    if (cust._id === customerId) {
+      return {
+        ...cust,
+        paidAmount,
+        balance,
+        status
+      };
     }
-  };
+    return cust;
+  });
+  
+  setCustomers(updatedCustomers);
+};
+
+// Handle paid amount save to backend - UPDATED with proper balance calculation
+const handlePaidAmountSave = async (customerId, value) => {
+  try {
+    const paidAmount = parseFloat(value) || 0;
+    const customer = customers.find(c => c._id === customerId);
+    const cost = customer.cost || 0;
+    
+    // Calculate balance correctly
+    const balance = Math.max(0, cost - paidAmount);
+    
+    let status = customer.status;
+    // Auto-update status based on payment
+    if (paidAmount === 0) {
+      status = 'not paid';
+    } else if (paidAmount >= cost) {
+      status = 'paid';
+    } else if (paidAmount > 0 && paidAmount < cost) {
+      status = 'part paid';
+    }
+
+    // Update in backend
+    const response = await fetch(`${CUSTOMER_API}/${customerId}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        paidAmount,
+        balance,
+        status
+      })
+    });
+
+    const result = await response.json();
+    
+    if (result.success) {
+      // Update both local states
+      const updatedCustomers = customers.map(cust =>
+        cust._id === customerId ? result.data : cust
+      );
+      const updatedAllCustomers = allCustomers.map(cust =>
+        cust._id === customerId ? result.data : cust
+      );
+      
+      setCustomers(updatedCustomers);
+      setAllCustomers(updatedAllCustomers);
+    } else {
+      throw new Error(result.message);
+    }
+  } catch (error) {
+    console.error('Error updating paid amount:', error);
+    alert('Error updating paid amount: ' + error.message);
+  }
+};
 
   // Handle expected delivery date change
   const handleExpectedDeliveryChange = (customerId, value) => {
@@ -1394,6 +1497,49 @@ const handleWarrantyDaysSave = async (customerId, value) => {
   } catch (error) {
     console.error('Error updating warranty days:', error);
     alert('Error updating warranty days: ' + error.message);
+  }
+};
+
+// Add this function to handle return status
+// Add this function to handle return status - ENHANCED with stock refresh
+const handleReturnStatus = async (customerId) => {
+  try {
+    const customer = customers.find(c => c._id === customerId);
+    
+    const response = await fetch(`${CUSTOMER_API}/${customerId}/return`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      }
+    });
+
+    const result = await response.json();
+    
+    if (result.success) {
+      // Update both local states
+      const updatedCustomers = customers.map(cust =>
+        cust._id === customerId ? result.data : cust
+      );
+      const updatedAllCustomers = allCustomers.map(cust =>
+        cust._id === customerId ? result.data : cust
+      );
+      
+      setCustomers(updatedCustomers);
+      setAllCustomers(updatedAllCustomers);
+      
+      // Refresh stock data to show updated quantities
+      if (customer.shopType === 'service' && customer.stock) {
+        await fetchStockData();
+        console.log(`🔄 Stock data refreshed after return`);
+      }
+      
+      alert('Customer marked as returned and stock restocked!');
+    } else {
+      throw new Error(result.message);
+    }
+  } catch (error) {
+    console.error('Error marking as returned:', error);
+    alert('Error marking as returned: ' + error.message);
   }
 };
 
@@ -2951,40 +3097,46 @@ Thank you for shopping with us! 🎉`
   />
 </td>
                                 <td className="border border-gray-200 px-3 py-2 whitespace-nowrap">
-                                  <select
-                                    value={customer.status}
-                                    onChange={(e) => handleStatusChange(customer._id, e.target.value)}
-                                    className={`px-2 py-1 rounded-lg text-xs font-semibold border-0 focus:ring-1 focus:ring-orange-300 cursor-pointer transition-all duration-200 ${
-                                      customer.status === 'paid' 
-                                        ? 'bg-green-500 text-white hover:bg-green-600 shadow' 
-                                        : customer.status === 'part paid'
-                                        ? 'bg-yellow-500 text-white hover:bg-yellow-600 shadow'
-                                        : 'bg-red-500 text-white hover:bg-red-600 shadow'
-                                    }`}
-                                  >
-                                    <option value="not paid" className="bg-red-500 text-white">Not Paid</option>
-                                    <option value="part paid" className="bg-yellow-500 text-white">Part Paid</option>
-                                    <option value="paid" className="bg-green-500 text-white">Paid</option>
-                                  </select>
+<select
+  value={customer.status}
+  onChange={(e) => handleStatusChange(customer._id, e.target.value)}
+  className={`px-2 py-1 rounded-lg text-xs font-semibold border-0 focus:ring-1 focus:ring-orange-300 cursor-pointer transition-all duration-200 ${
+    customer.status === 'paid' 
+      ? 'bg-green-500 text-white hover:bg-green-600 shadow' 
+      : customer.status === 'part paid'
+      ? 'bg-yellow-500 text-white hover:bg-yellow-600 shadow'
+      : customer.status === 'returned'
+      ? 'bg-purple-500 text-white hover:bg-purple-600 shadow'
+      : 'bg-red-500 text-white hover:bg-red-600 shadow'
+  }`}
+>
+  <option value="not paid" className="bg-red-500 text-white">Not Paid</option>
+  <option value="part paid" className="bg-yellow-500 text-white">Part Paid</option>
+  <option value="paid" className="bg-green-500 text-white">Paid</option>
+  <option value="returned" className="bg-purple-500 text-white">Returned</option>
+</select>
                                 </td>
                                 <td className="border border-gray-200 px-3 py-2 font-semibold whitespace-nowrap text-green-600 text-base">
                                   ₹{customer.cost.toFixed(2)}
                                 </td>
-                                <td className="border border-gray-200 px-3 py-2 whitespace-nowrap">
-                                  <input
-                                    type="number"
-                                    value={customer.paidAmount || ' '}
-                                    onChange={(e) => handlePaidAmountChange(customer._id, e.target.value)}
-                                    onBlur={(e) => handlePaidAmountSave(customer._id, e.target.value)}
-                                    onKeyPress={(e) => e.key === 'Enter' && e.target.blur()}
-                                    className="w-20 text-blue-600 font-semibold text-center border border-gray-300 rounded px-1 py-1 focus:outline-none focus:border-blue-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                                    min="0"
-                                    step="0.01"
-                                    placeholder='0'
-                                  />
-                                </td>
+                                  <td className="border border-gray-200 px-3 py-2 whitespace-nowrap">
+                                    <input
+                                      type="number"
+                                      value={customer.paidAmount || ' '}
+                                      onChange={(e) => handlePaidAmountChange(customer._id, e.target.value)}
+                                      onBlur={(e) => handlePaidAmountSave(customer._id, e.target.value)}
+                                      onKeyPress={(e) => e.key === 'Enter' && e.target.blur()}
+                                      className={`w-20 text-blue-600 font-semibold text-center border border-gray-300 rounded px-1 py-1 focus:outline-none focus:border-blue-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${
+                                        customer.status === 'returned' ? 'bg-gray-100 cursor-not-allowed opacity-50' : ''
+                                      }`}
+                                      min="0"
+                                      step="0.01"
+                                      placeholder='0'
+                                      disabled={customer.status === 'returned'}
+                                    />
+                                  </td>
                                 <td className="border border-gray-200 px-3 py-2 font-semibold whitespace-nowrap text-red-600 text-base">
-                                  ₹{(customer.balance || customer.cost || 0).toFixed(2)}
+                                  ₹{customer.status === 'returned' ? '0.00' : (customer.balance || 0).toFixed(2)}
                                 </td>
                               </>
                             ) : (
