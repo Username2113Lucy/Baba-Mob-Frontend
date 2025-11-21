@@ -16,9 +16,14 @@ const STOCK_API = `${API_BASE}/stock-items`;
 const DEALERS_API = `${API_BASE}/dealers`;
 
 export const Billing_page = () => {
-  const [activeTab, setActiveTab] = useState(() => {
-    return localStorage.getItem('activeTab') || 'addCustomer';
-  });
+const [activeTab, setActiveTab] = useState(() => {
+  return localStorage.getItem('activeTab') || 'addCustomer';
+});
+
+// ✅ UPDATED: Save to localStorage whenever activeTab changes
+useEffect(() => {
+  localStorage.setItem('activeTab', activeTab);
+}, [activeTab]);
 
   const [shopType, setShopType] = useState(() => {
     return localStorage.getItem('shopType') || 'service';
@@ -248,6 +253,10 @@ const [dealerPaymentForm, setDealerPaymentForm] = useState({
   // Add these to your component state
 const [editVariantPrice, setEditVariantPrice] = useState('');
 const [editVariantQuantity, setEditVariantQuantity] = useState('');
+
+// Add this state to track HSN dropdown and dealer HSN codes
+const [showHsnDropdown, setShowHsnDropdown] = useState(false);
+const [dealerHsnCodes, setDealerHsnCodes] = useState({}); // {dealerId: [hsn1, hsn2, ...]}
 
 // In your DealersList component, add this state and function
 const [clickedElement, setClickedElement] = useState(null);
@@ -1657,41 +1666,95 @@ const handlePaidAmountSave = async (customerId, value) => {
     }
   };
 
-  // Handle shop type change - COMBINED VERSION
-  const handleShopTypeChange = (newShopType) => {
-    setShopType(newShopType);
-    localStorage.setItem('shopType', newShopType);
-    
-    // Reset customer data when switching shop types (only for sales/service)
-    if (newShopType === 'sales' || newShopType === 'service') {
-      setCustomerData({
-        name: '',
-        phone: '',
-        issue: '',
-        cost: '',
-        brand: '',
-        stock: '',
-        model: '',
-        password: '',
-        paymentMode: ''
-      });
-      
-      // Reset filter data
-      setFilterData({
-        name: '',
-        phone: '',
-        invoiceNumber: '',
-        date: '',
-        status: '',
-        paymentMode: ''
-      });
+  
+
+// Handle shop type change - UPDATED WITH TAB SYNC
+const handleShopTypeChange = (newShopType) => {
+  const currentShopType = shopType;
+  
+  // ✅ TAB SYNC LOGIC: Determine which tab to show in the new shop type
+  let newActiveTab = activeTab;
+  
+  if (newShopType === 'service') {
+    // When switching to service
+    if (currentShopType === 'sales') {
+      if (activeTab === 'multibrand' || activeTab === 'dealers') {
+        newActiveTab = 'addCustomer'; // Multibrand/Dealers in sales → Add Customer in service
+      }
+      // For addCustomer, filter, items - keep the same tab
+      else if (['addCustomer', 'filter', 'items'].includes(activeTab)) {
+        newActiveTab = activeTab; // Keep same tab
+      }
+      else {
+        newActiveTab = 'addCustomer'; // Default fallback
+      }
     }
-    
-    // Fetch accessories data when accessories tab is selected
-    if (newShopType === 'accessories') {
-      fetchAccessories();
+    // If coming from accessories or other types, default to addCustomer
+    else {
+      newActiveTab = 'addCustomer';
     }
-  };
+  } 
+  else if (newShopType === 'sales') {
+    // When switching to sales
+    if (currentShopType === 'service') {
+      if (['addCustomer', 'filter', 'items'].includes(activeTab)) {
+        newActiveTab = activeTab; // Keep same tab if it exists in sales
+      } else {
+        newActiveTab = 'addCustomer'; // Default to addCustomer
+      }
+    }
+    // If coming from accessories or other types, default to addCustomer
+    else {
+      newActiveTab = 'addCustomer';
+    }
+  }
+  else if (newShopType === 'accessories') {
+    // Accessories has its own tab logic, you might want to set a default tab for accessories
+    newActiveTab = 'addCustomer'; // or whatever default tab you want for accessories
+  }
+  
+  // Update states
+  setShopType(newShopType);
+  setActiveTab(newActiveTab);
+  localStorage.setItem('shopType', newShopType);
+  
+  // Reset customer data when switching shop types (only for sales/service)
+  if (newShopType === 'sales' || newShopType === 'service') {
+    setCustomerData({
+      name: '',
+      phone: '',
+      issue: '',
+      cost: '',
+      brand: '',
+      stock: '',
+      model: '',
+      password: '',
+      paymentMode: ''
+    });
+    
+    // Reset filter data
+    setFilterData({
+      name: '',
+      phone: '',
+      invoiceNumber: '',
+      date: '',
+      status: '',
+      paymentMode: ''
+    });
+  }
+  
+  // Fetch accessories data when accessories tab is selected
+  if (newShopType === 'accessories') {
+    fetchAccessories();
+  }
+  
+  console.log(`🔄 Shop type changed: ${currentShopType} → ${newShopType}, Tab: ${activeTab} → ${newActiveTab}`);
+};
+
+// ✅ Also update your individual tab click handler to save to localStorage
+const handleTabClick = (tabName) => {
+  setActiveTab(tabName); // This automatically saves to localStorage via useEffect
+};
 
 {/* Variant editing functions - UPDATED */}
 const handleVariantEditClick = (variant, e) => {
@@ -2924,6 +2987,70 @@ useEffect(() => {
   }
 }, [multiBrandCustomers]);
 
+// ✅ USE THE SIMPLE ENDPOINT
+const fetchDealerHsnCodes = async (dealerId) => {
+  if (!dealerId) {
+    console.log('❌ No dealer ID provided for HSN fetch');
+    return;
+  }
+  
+  console.log('🔄 Fetching HSN codes for dealer:', dealerId);
+  
+  try {
+    // Use the simple endpoint
+    const response = await fetch(`${API_BASE}/stock-items/dealer/${dealerId}/hsn-simple`);
+    console.log('📡 SIMPLE HSN API Response status:', response.status);
+    
+    if (response.ok) {
+      const result = await response.json();
+      console.log('✅ SIMPLE HSN API Success:', result);
+      
+      if (result.success) {
+        console.log('📋 SIMPLE HSN Codes received:', result.data);
+        setDealerHsnCodes(prev => ({
+          ...prev,
+          [dealerId]: result.data || []
+        }));
+      } else {
+        console.log('❌ SIMPLE HSN API returned success:false:', result.message);
+      }
+    } else {
+      console.log('❌ SIMPLE HSN API HTTP Error:', response.status, response.statusText);
+    }
+  } catch (error) {
+    console.error('❌ SIMPLE HSN API Fetch Error:', error);
+  }
+};
+
+// ✅ FALLBACK: Alternative method to get HSN codes
+const fetchHsnCodesAlternative = async (dealerId) => {
+  try {
+    console.log('🔄 Trying alternative HSN fetch for dealer:', dealerId);
+    
+    // Fetch all stock items for this dealer and extract HSN codes
+    const response = await fetch(`${API_BASE}/stock-items?dealer=${dealerId}`);
+    if (response.ok) {
+      const result = await response.json();
+      if (result.success) {
+        const stockItems = result.data || [];
+        const hsnCodes = [...new Set(stockItems
+          .filter(item => item.hsn && item.hsn.trim() !== '')
+          .map(item => item.hsn)
+          .sort()
+        )];
+        
+        console.log('✅ Alternative HSN fetch successful:', hsnCodes);
+        setDealerHsnCodes(prev => ({
+          ...prev,
+          [dealerId]: hsnCodes
+        }));
+      }
+    }
+  } catch (error) {
+    console.error('❌ Alternative HSN fetch failed:', error);
+  }
+};
+
 const handleStockFormChange = (index, field, value) => {
   const newForm = [...stockFormData];
   
@@ -2959,6 +3086,23 @@ const handleStockFormChange = (index, field, value) => {
     // If changing any field other than IMEI, uncheck copyFromPrevious
     if (field !== 'imei' && field !== 'copyFromPrevious') {
       newForm[index] = { ...newForm[index], copyFromPrevious: false };
+    }
+  }
+  
+  // ✅ ADDED: When dealer changes, fetch their HSN codes
+  if (field === 'dealer' && value) {
+    fetchDealerHsnCodes(value);
+  }
+  
+  // ✅ ADDED: When HSN is typed and doesn't match existing, allow new HSN
+  if (field === 'hsn') {
+    const dealerId = newForm[index].dealer;
+    if (dealerId && value) {
+      const existingHsns = dealerHsnCodes[dealerId] || [];
+      if (!existingHsns.includes(value)) {
+        // This is a new HSN for this dealer - it will be saved when stock is added
+        console.log('➕ New HSN detected:', value, 'for dealer:', dealerId);
+      }
     }
   }
   
@@ -3089,6 +3233,9 @@ const handleSaveStockItems = async () => {
     if (result.success) {
       // ✅ Handle partial success - some items saved, some failed
       if (result.errors && result.errors.length > 0) {
+        // Create a set of failed IMEIs for quick lookup
+        const failedImeis = new Set();
+        
         // Update form with error messages for failed items
         const updatedForm = [...stockFormData];
         
@@ -3097,6 +3244,8 @@ const handleSaveStockItems = async () => {
           const imeiMatch = errorMsg.match(/IMEI\s+"([^"]+)"/) || errorMsg.match(/IMEI\s+([^\s]+)/);
           if (imeiMatch) {
             const failedImei = imeiMatch[1];
+            failedImeis.add(failedImei);
+            
             const failedIndex = updatedForm.findIndex(item => item.imei === failedImei);
             if (failedIndex !== -1) {
               updatedForm[failedIndex] = {
@@ -3107,7 +3256,24 @@ const handleSaveStockItems = async () => {
           }
         });
         
-        setStockFormData(updatedForm);
+        // ✅ FIX: Keep ONLY the failed items in the form, clear successful ones
+        const failedItemsOnly = updatedForm.filter(item => failedImeis.has(item.imei));
+        
+        // If there are failed items, add one empty row for new entries
+        if (failedItemsOnly.length > 0) {
+          failedItemsOnly.push({
+            product: '',
+            model: '',
+            imei: '',
+            hsn: '',
+            dealer: '',
+            cost: '',
+            copyFromPrevious: false,
+            error: ''
+          });
+        }
+        
+        setStockFormData(failedItemsOnly);
         
         // Show success message for saved items and keep failed items in form
         const savedCount = result.data ? result.data.length : stockItemsToSave.length - result.errors.length;
@@ -3131,6 +3297,7 @@ const handleSaveStockItems = async () => {
     alert('❌ Error saving stock items: ' + error.message);
   }
 };
+
 
 // ✅ ENHANCED: Auto-fill with better data handling
 const handleImeiSelect = (selectedImei, formType = 'regular') => {
@@ -6154,21 +6321,7 @@ if (shopType === 'sales') {
                   )}
                 </div>
 
-                {/* HSN */}
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-1">
-                    HSN
-                  </label>
-                  <input
-                    type="text"
-                    value={stockItem.hsn}
-                    onChange={(e) => handleStockFormChange(index, 'hsn', e.target.value)}
-                    placeholder="HSN code"
-                    className="text-black w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:border-orange-500"
-                  />
-                </div>
-
-                {/* Dealer */}
+                                {/* Dealer */}
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-1">
                     Supplier *
@@ -6187,6 +6340,93 @@ if (shopType === 'sales') {
                     ))}
                   </select>
                 </div>
+
+{/* HSN - Combined Input & Dropdown */}
+<div>
+  <label className="block text-sm font-semibold text-gray-700 mb-1">
+    HSN
+  </label>
+  <div className="relative">
+    <input
+      type="text"
+      value={stockItem.hsn}
+      onChange={(e) => handleStockFormChange(index, 'hsn', e.target.value)}
+      onFocus={() => {
+        console.log('🎯 HSN field focused, dealer:', stockItem.dealer);
+        console.log('📋 Available HSN codes:', dealerHsnCodes[stockItem.dealer]);
+        if (stockItem.dealer) {
+          setShowHsnDropdown(true);
+        }
+      }}
+      onBlur={() => {
+        setTimeout(() => setShowHsnDropdown(false), 150);
+      }}
+      placeholder="Type HSN or select from list"
+      className="text-black w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:border-orange-500"
+    />
+    
+    {/* HSN Dropdown */}
+    {showHsnDropdown && stockItem.dealer && dealerHsnCodes[stockItem.dealer] && (
+      <div className="absolute z-20 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+        {dealerHsnCodes[stockItem.dealer].length > 0 ? (
+          <>
+            {dealerHsnCodes[stockItem.dealer].filter(hsn => {
+              if (!stockItem.hsn) return true;
+              return hsn.toLowerCase().includes(stockItem.hsn.toLowerCase());
+            }).map((hsn, hsnIndex) => (
+              <div
+                key={hsnIndex}
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  console.log('✅ HSN selected:', hsn);
+                  handleStockFormChange(index, 'hsn', hsn);
+                  setShowHsnDropdown(false);
+                }}
+                className="px-3 py-2 hover:bg-orange-50 cursor-pointer border-b border-gray-100 last:border-b-0 transition-colors duration-200"
+              >
+                <div className="font-medium text-gray-800">{hsn}</div>
+              </div>
+            ))}
+            
+            {/* Show option to add new HSN when typing something different */}
+            {stockItem.hsn && !dealerHsnCodes[stockItem.dealer].includes(stockItem.hsn) && (
+              <div
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  console.log('➕ Keeping new HSN:', stockItem.hsn);
+                  setShowHsnDropdown(false);
+                }}
+                className="px-3 py-2 bg-green-50 text-green-700 cursor-pointer border-t border-green-200"
+              >
+                <div className="font-medium">➕ Add new HSN: "{stockItem.hsn}"</div>
+                <div className="text-xs">This will be saved for future use</div>
+              </div>
+            )}
+          </>
+        ) : (
+          <div className="px-3 py-2 text-gray-500 text-sm">
+            No HSN codes found for this supplier
+          </div>
+        )}
+      </div>
+    )}
+  </div>
+  
+{/* HSN Status Info */}
+{stockItem.dealer && (
+  <div className="text-xs mt-1">
+    {dealerHsnCodes[stockItem.dealer] === undefined ? (
+      <span className="text-blue-600">🔄 Loading HSN codes...</span>
+    ) : dealerHsnCodes[stockItem.dealer].length > 0 ? (
+      <span className="text-green-600">
+        ✅ HSN codes available
+      </span>
+    ) : (
+      <span className="text-yellow-600">📝 No HSN codes found - you can add new ones</span>
+    )}
+  </div>
+)}
+</div>
 
                 {/* Cost */}
                 <div>
