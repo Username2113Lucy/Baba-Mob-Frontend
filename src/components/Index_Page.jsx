@@ -1,7 +1,7 @@
-// Index_Page.jsx - Updated with environment detection
+// components/Index_Page.jsx - Updated with User Info
 import React, { useState, useEffect } from 'react';
 
-export const Index_Page = () => {
+export const Index_Page = ({ user, onLogout }) => {
   const [whatsappStatus, setWhatsappStatus] = useState({
     ready: false,
     hasQR: false,
@@ -12,22 +12,21 @@ export const Index_Page = () => {
     loading: true
   });
   const [resetLoading, setResetLoading] = useState(false);
+  const [showUserMenu, setShowUserMenu] = useState(false);
 
   // ✅ DYNAMIC API BASE DETECTION
   const getApiBase = () => {
-    // Check if we're in development (localhost)
     const isLocalhost = window.location.hostname === 'localhost' || 
                        window.location.hostname === '127.0.0.1';
     
     if (isLocalhost) {
-      return 'http://localhost:5000'; // Local backend
+      return 'http://localhost:5000';
     } else {
-      return 'https://baba-mob-backend.onrender.com'; // Render backend
+      return 'https://baba-mob-backend.onrender.com';
     }
   };
 
   const API_BASE = getApiBase();
-  console.log('🌐 Using API Base:', API_BASE);
 
   // Fetch WhatsApp status
   const fetchWhatsAppStatus = async () => {
@@ -41,14 +40,9 @@ export const Index_Page = () => {
         }
       });
       
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
+      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
       
       const data = await response.json();
-      
-      console.log('📱 WhatsApp Status:', data);
-      
       setWhatsappStatus({
         ...data,
         loading: false
@@ -71,7 +65,6 @@ export const Index_Page = () => {
   const resetWhatsApp = async () => {
     try {
       setResetLoading(true);
-      
       const response = await fetch(`${API_BASE}/whatsapp/reset`, {
         method: 'POST',
         headers: {
@@ -80,14 +73,8 @@ export const Index_Page = () => {
         }
       });
       
-      if (!response.ok) {
-        throw new Error('Reset failed');
-      }
+      if (!response.ok) throw new Error('Reset failed');
       
-      const result = await response.json();
-      console.log('🔄 Reset result:', result);
-      
-      // Refresh status and open QR page
       setTimeout(() => {
         fetchWhatsAppStatus();
         setResetLoading(false);
@@ -101,24 +88,33 @@ export const Index_Page = () => {
     }
   };
 
-  // Open QR page based on environment
   const openQRPage = () => {
     const qrUrl = `${API_BASE}/whatsapp/qr-display`;
-    console.log(`📱 Opening QR page: ${qrUrl}`);
-    console.log(`💾 Session will be stored in: ${whatsappStatus.sessionType}`);
     window.open(qrUrl, '_blank');
   };
 
   // Load status on component mount
   useEffect(() => {
     fetchWhatsAppStatus();
-    
-    // Refresh status every 10 seconds
     const interval = setInterval(fetchWhatsAppStatus, 10000);
     return () => clearInterval(interval);
   }, []);
 
-  // ✅ DYNAMIC BUTTON RENDERING
+  // Close user menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (!e.target.closest('.user-menu-container')) {
+        setShowUserMenu(false);
+      }
+    };
+
+    if (showUserMenu) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showUserMenu]);
+
+  // ✅ WhatsApp Button
   const renderWhatsAppButton = () => {
     if (whatsappStatus.loading) {
       return (
@@ -135,7 +131,6 @@ export const Index_Page = () => {
           onClick={resetWhatsApp}
           disabled={resetLoading}
           className="flex items-center space-x-2 bg-green-600 hover:bg-green-700 px-3 py-1 rounded-lg transition-colors disabled:opacity-50"
-          title={`Connected via ${whatsappStatus.sessionType} (${whatsappStatus.environment})`}
         >
           {resetLoading ? (
             <>
@@ -157,7 +152,6 @@ export const Index_Page = () => {
         <button
           onClick={openQRPage}
           className="flex items-center space-x-2 bg-yellow-600 hover:bg-yellow-700 px-3 py-1 rounded-lg transition-colors"
-          title={`Session exists in ${whatsappStatus.sessionType} - Click to reconnect`}
         >
           <span className="text-sm">🔄</span>
           <span className="text-xs font-medium">Reconnect</span>
@@ -165,12 +159,10 @@ export const Index_Page = () => {
       );
     }
 
-    // No session exists - show Add WhatsApp button
     return (
       <button
         onClick={openQRPage}
         className="flex items-center space-x-2 bg-blue-600 hover:bg-blue-700 px-3 py-1 rounded-lg transition-colors"
-        title={`Connect WhatsApp - Session will be stored in ${whatsappStatus.sessionType}`}
       >
         <span className="text-sm">📱</span>
         <span className="text-xs font-medium">Add WhatsApp</span>
@@ -178,29 +170,17 @@ export const Index_Page = () => {
     );
   };
 
-  // ✅ STATUS INDICATOR WITH ENVIRONMENT INFO
+  // ✅ Status Indicator
   const renderStatusIndicator = () => {
     let color = 'bg-red-400';
-    let title = whatsappStatus.message;
-
-    if (whatsappStatus.ready) {
-      color = 'bg-green-400 animate-pulse';
-      title = `Connected (${whatsappStatus.sessionType} on ${whatsappStatus.environment})`;
-    } else if (whatsappStatus.sessionExists) {
-      color = 'bg-yellow-400 animate-pulse';
-      title = `Session exists - Reconnecting (${whatsappStatus.sessionType} on ${whatsappStatus.environment})`;
-    } else if (whatsappStatus.hasQR) {
-      color = 'bg-blue-400 animate-pulse';
-      title = 'QR Code Ready - Scan to Connect';
-    }
+    if (whatsappStatus.ready) color = 'bg-green-400 animate-pulse';
+    else if (whatsappStatus.sessionExists) color = 'bg-yellow-400 animate-pulse';
+    else if (whatsappStatus.hasQR) color = 'bg-blue-400 animate-pulse';
 
     return (
       <div className="flex items-center space-x-2">
-        <div 
-          className={`w-2 h-2 rounded-full ${color}`} 
-          title={title}
-        ></div>
-        <span className="text-xs text-gray-300" title={`Environment: ${whatsappStatus.environment}`}>
+        <div className={`w-2 h-2 rounded-full ${color}`}></div>
+        <span className="text-xs text-gray-300">
           {whatsappStatus.environment}
         </span>
       </div>
@@ -211,19 +191,60 @@ export const Index_Page = () => {
     <div className="bg-white flex flex-col">
       <header className="bg-orange-600 text-white px-3 py-2 sm:px-4 sm:py-3 flex items-center justify-between shadow-md">
         
-        {/* Left - WhatsApp Connection Button */}
+        {/* Left - WhatsApp Connection */}
         <div className="flex items-center space-x-2">
           {renderWhatsAppButton()}
           {renderStatusIndicator()}
         </div>
 
-        {/* Center - Mobile Shop Billing */}
+        {/* Center - Title */}
         <h1 className="text-md sm:text-lg font-bold text-center tracking-tight font-serif flex-1 text-center">
           Mobile Shop Billing
         </h1>
 
-        {/* Right - Empty space for balance */}
-        <div className="w-20"></div>
+        {/* Right - User Menu */}
+        <div className="mr-7 user-menu-container relative">
+          <button
+            onClick={() => setShowUserMenu(!showUserMenu)}
+            className="flex items-center space-x-2 bg-orange-700 hover:bg-orange-800 px-3 py-1 rounded-lg transition-colors"
+          >
+            <div className="w-6 h-6 bg-white rounded-full flex items-center justify-center">
+              <span className="text-orange-600 text-sm font-bold">
+                {user?.initial || 'U'}
+              </span>
+            </div>
+            <span className="text-xs font-medium">{user?.username}</span>
+          </button>
+
+          {/* User Dropdown Menu */}
+          {showUserMenu && (
+            <div className="absolute right-0 top-12 w-48 bg-white border border-orange-300 rounded-lg shadow-lg z-50">
+              <div className="p-3 border-b border-orange-200">
+                <div className="flex items-center space-x-2">
+                  <div className="w-8 h-8 bg-orange-500 rounded-full flex items-center justify-center">
+                    <span className="text-white text-sm font-bold">
+                      {user?.initial}
+                    </span>
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-gray-800">{user?.username}</p>
+                    <p className="text-xs text-gray-600">{user?.email}</p>
+                    <p className="text-xs text-orange-600">{user?.role}</p>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="p-2">
+                <button
+                  onClick={onLogout}
+                  className="w-full text-center px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded transition-colors"
+                >
+                  Logout
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
       </header>
     </div>
   );

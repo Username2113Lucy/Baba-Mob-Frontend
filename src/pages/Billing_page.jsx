@@ -207,13 +207,19 @@ const [expandedDealer, setExpandedDealer] = useState(null);
 const [showMultiBrandImeiDropdown, setShowMultiBrandImeiDropdown] = useState(false);
 
 
-  // Keep only payment related states
-  const [dealerPaymentForm, setDealerPaymentForm] = useState({
-    dealer: '',
-    amount: '',
-    date: new Date().toISOString().split('T')[0]
-  });
-  const [selectedDealerForDetails, setSelectedDealerForDetails] = useState(null);
+// Add to your component state
+const [selectedDealerForDetails, setSelectedDealerForDetails] = useState(null);
+const [dealerPaymentDetails, setDealerPaymentDetails] = useState([]);
+const [showPaymentDetails, setShowPaymentDetails] = useState(false);
+// ✅ SIMPLIFIED PAYMENT FORM
+const [dealerPaymentForm, setDealerPaymentForm] = useState({
+  dealer: '',
+  amount: '',
+  totalAmount: '', // This will be calculated from stock items
+  date: new Date().toLocaleDateString('en-IN') // This gives "DD/MM/YYYY"
+
+});
+
 
   // 🧾 Cashier State (Separate for Service and Sales)
   const [serviceCashiers, setServiceCashiers] = useState([]);
@@ -243,6 +249,17 @@ const [showMultiBrandImeiDropdown, setShowMultiBrandImeiDropdown] = useState(fal
 const [editVariantPrice, setEditVariantPrice] = useState('');
 const [editVariantQuantity, setEditVariantQuantity] = useState('');
 
+// In your DealersList component, add this state and function
+const [clickedElement, setClickedElement] = useState(null);
+
+const handleRowClick = (dealer, e) => {
+  // If the click came from a button or no-expand element, don't expand
+  if (e.target.closest('button') || e.target.closest('.no-expand') || e.target.tagName === 'BUTTON') {
+    return;
+  }
+  
+  setExpandedDealer(expandedDealer === dealer._id ? null : dealer._id);
+};
 
 
   // localStorage utility functions for cashiers
@@ -2177,43 +2194,101 @@ const handleReturnStatus = async (customerId) => {
     }
   };
 
-  // Add dealer payment
-  const addDealerPayment = async (e) => {
-    e.preventDefault();
+// ✅ UPDATED: Add dealer payment with error handling
+const addDealerPayment = async (e) => {
+  e.preventDefault();
+  
+  if (!dealerPaymentForm.dealer || !dealerPaymentForm.amount || !dealerPaymentForm.totalAmount) {
+    alert('Please select dealer, enter amount and verify total amount');
+    return;
+  }
+
+  if (parseFloat(dealerPaymentForm.amount) > parseFloat(dealerPaymentForm.totalAmount)) {
+    alert('Payment amount cannot be greater than total amount');
+    return;
+  }
+
+  try {
+    setLoading(true);
     
-    if (!dealerPaymentForm.dealer || !dealerPaymentForm.amount) {
-      alert('Please select dealer and enter amount');
-      return;
-    }
+    const response = await fetch(`${DEALERS_API}/${dealerPaymentForm.dealer}/payments`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        amount: parseFloat(dealerPaymentForm.amount),
+        totalAmount: parseFloat(dealerPaymentForm.totalAmount),
+        date: dealerPaymentForm.date
+      })
+    });
 
-    try {
-      const response = await fetch(`${DEALERS_API}/${dealerPaymentForm.dealer}/payments`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          amount: dealerPaymentForm.amount,
-          date: dealerPaymentForm.date
-        })
+    const result = await response.json();
+    
+    if (result.success) {
+      alert('Payment added successfully!');
+      setDealerPaymentForm({
+        dealer: '',
+        amount: '',
+        totalAmount: '',
+        date: new Date().toISOString().split('T')[0]
       });
-
-      const result = await response.json();
-      
-      if (result.success) {
-        alert('Payment added successfully!');
-        setDealerPaymentForm({
-          dealer: '',
-          amount: '',
-          date: new Date().toISOString().split('T')[0]
-        });
-        fetchDealers();
-      } else {
-        alert(`Error: ${result.message}`);
-      }
-    } catch (error) {
-      console.error('Error adding dealer payment:', error);
-      alert('Error adding payment');
+      fetchDealers(); // Refresh dealers list
+    } else {
+      alert(`Error: ${result.message}`);
     }
-  };
+  } catch (error) {
+    console.error('Error adding dealer payment:', error);
+    alert('Error adding payment: ' + error.message);
+  } finally {
+    setLoading(false);
+  }
+};
+
+// ✅ UPDATED: FETCH PAYMENT DETAILS with better error handling
+const fetchDealerPaymentDetails = async (dealerId) => {
+  try {
+    setLoading(true);
+    
+    const response = await fetch(`${DEALERS_API}/${dealerId}/payment-details`);
+    
+    if (!response.ok) {
+      if (response.status === 404) {
+        throw new Error('Payment details endpoint not found. Please check backend routes.');
+      }
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    
+    const result = await response.json();
+    
+    if (result.success) {
+      setDealerPaymentDetails(result.data);
+      setShowPaymentDetails(true);
+    } else {
+      throw new Error(result.message);
+    }
+  } catch (error) {
+    console.error('Error fetching payment details:', error);
+    alert('Error fetching payment details: ' + error.message);
+    
+    // Fallback: Show empty payment details
+    setDealerPaymentDetails([]);
+    setShowPaymentDetails(true);
+  } finally {
+    setLoading(false);
+  }
+};
+
+// ✅ AUTO-FILL TOTAL AMOUNT WHEN DEALER IS SELECTED
+const handleDealerSelectForPayment = (dealerId) => {
+  const dealer = dealers.find(d => d._id === dealerId);
+  if (dealer) {
+    const balanceInfo = getDealerBalanceInfo(dealer);
+    setDealerPaymentForm(prev => ({
+      ...prev,
+      dealer: dealerId,
+      totalAmount: balanceInfo.totalWithGST.toFixed(2)
+    }));
+  }
+};
 
   // Fetch dealer transactions
   const fetchDealerTransactions = async (dealerId) => {
@@ -2231,14 +2306,30 @@ const handleReturnStatus = async (customerId) => {
     }
   };
 
-// Calculate dealer balance from dealer data (no need for separate calculation)
+// ✅ CALCULATE DEALER BALANCE INFO (Frontend only)
 const getDealerBalanceInfo = (dealer) => {
+  const dealerStockItems = stockItems.filter(item => item.dealer?._id === dealer._id);
+  
+  // Calculate total stock cost
+  const totalStockCost = dealerStockItems.reduce((sum, item) => sum + (item.cost || 0), 0);
+  const gstAmount = totalStockCost * 0.18;
+  const totalWithGST = totalStockCost + gstAmount;
+  
+  // Calculate total payments from payment details
+  const totalPayments = dealer.paymentDetails?.reduce((sum, payment) => sum + (payment.paymentMade || 0), 0) || 0;
+  
+  // Simple balance calculation: (total + GST) - paid
+  const balance = totalWithGST - totalPayments;
+  
   return {
-    totalStockValue: dealer.totalStockValue || 0,
-    totalPayments: dealer.totalPayments || 0,
-    balance: dealer.currentBalance || 0
+    totalStockCost,
+    gstAmount,
+    totalWithGST,
+    totalPayments,
+    balance
   };
 };
+
 
   // Auto-create dealer transactions from existing stock items
   const autoCreateDealerTransactions = async (dealerId) => {
@@ -3105,7 +3196,183 @@ const handleImeiSelect = (selectedImei, formType = 'regular') => {
   }
 };
 
+// ✅ FIXED: DealerAlertSection with forced refresh
+const DealerAlertSection = ({ dealer, onAlertSet, onAlertReset }) => {
+  const [alertDate, setAlertDate] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [localRefresh, setLocalRefresh] = useState(0);
 
+  // Simple calculation
+  const isAlertRecentlySent = dealer.alertSettings?.lastAlertSent && 
+    (new Date() - new Date(dealer.alertSettings.lastAlertSent)) < 30000;
+
+  // ✅ ADD THIS: Force refresh when alert time is near or just passed
+  useEffect(() => {
+    if (!dealer.alertSettings?.isAlertActive || !dealer.alertSettings?.nextAlertDate) return;
+
+    const alertTime = new Date(dealer.alertSettings.nextAlertDate);
+    const now = new Date();
+    const timeUntilAlert = alertTime - now;
+    const timeSinceAlert = now - alertTime;
+
+    // If alert is within 2 minutes OR was in last 30 seconds, start refreshing
+    if ((timeUntilAlert > 0 && timeUntilAlert < 120000) || (timeSinceAlert > 0 && timeSinceAlert < 30000)) {
+      console.log('🔄 Alert time active, starting auto-refresh...');
+      
+      const interval = setInterval(() => {
+        setLocalRefresh(prev => prev + 1);
+      }, 5000); // Refresh every 5 seconds
+
+      return () => clearInterval(interval);
+    }
+  }, [dealer.alertSettings, localRefresh]);
+
+  // ✅ ADD THIS: Trigger parent refresh when localRefresh changes
+  useEffect(() => {
+    if (localRefresh > 0) {
+      // This will trigger parent component to refresh dealer data
+      onAlertSet && onAlertSet(dealer._id);
+    }
+  }, [localRefresh, dealer._id, onAlertSet]);
+
+  const handleSetAlert = async () => {
+    if (!alertDate) {
+      alert('Please enter a date in DD/MM/YYYY format');
+      return;
+    }
+
+    const dateRegex = /^\d{2}\/\d{2}\/\d{4}$/;
+    if (!dateRegex.test(alertDate)) {
+      alert('Please enter date in DD/MM/YYYY format (e.g., 25/12/2024)');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const response = await fetch(`${DEALERS_API}/${dealer._id}/set-alert`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ alertDate: alertDate })
+      });
+
+      const result = await response.json();
+      
+      if (result.success) {
+        alert('Alert set successfully for 2:30 PM!');
+        setAlertDate('');
+        onAlertSet && onAlertSet(dealer._id);
+      } else {
+        alert('Error: ' + result.message);
+      }
+    } catch (error) {
+      alert('Error setting alert: ' + error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResetAlert = async () => {
+    setLoading(true);
+    try {
+      const response = await fetch(`${DEALERS_API}/${dealer._id}/reset-alert`, {
+        method: 'POST'
+      });
+
+      const result = await response.json();
+      
+      if (result.success) {
+        alert('Alert reset successfully!');
+        setAlertDate('');
+        onAlertReset && onAlertReset(dealer._id);
+      } else {
+        alert('Error: ' + result.message);
+      }
+    } catch (error) {
+      alert('Error resetting alert: ' + error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Handle DD/MM/YYYY input
+  const handleDateChange = (e) => {
+    let value = e.target.value;
+    value = value.replace(/[^\d/]/g, '');
+    
+    if (value.length === 2 && !value.includes('/')) {
+      value = value + '/';
+    } else if (value.length === 5 && value.split('/').length === 2) {
+      value = value + '/';
+    }
+    
+    if (value.length <= 10) {
+      setAlertDate(value);
+    }
+  };
+
+  return (
+    <div className="flex flex-col gap-2 items-center no-expand">
+      <input
+        type="text"
+        value={alertDate}
+        onChange={handleDateChange}
+        onFocus={(e) => e.stopPropagation()}
+        onClick={(e) => e.stopPropagation()}
+        placeholder="DD/MM/YYYY"
+        className="w-full px-2 py-1 border border-gray-300 rounded text-sm text-center no-expand"
+        maxLength="10"
+      />
+      
+      <div className="flex gap-1 w-full no-expand">
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            handleSetAlert();
+          }}
+          disabled={loading || !alertDate}
+          className="flex-1 bg-green-500 text-white px-2 py-1 rounded text-xs hover:bg-green-600 disabled:bg-gray-400 disabled:cursor-not-allowed no-expand"
+        >
+          {loading ? '...' : 'Set'}
+        </button>
+        
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            handleResetAlert();
+          }}
+          disabled={loading}
+          className="flex-1 bg-red-500 text-white px-2 py-1 rounded text-xs hover:bg-red-600 disabled:bg-gray-400 disabled:cursor-not-allowed no-expand"
+        >
+          {loading ? '...' : 'Reset'}
+        </button>
+      </div>
+
+      {/* ✅ Alert Status Display */}
+      {isAlertRecentlySent ? (
+        <div className="text-xs text-blue-600 mt-1 text-center no-expand font-semibold animate-pulse">
+          ✅ Alert Sent
+          <br />
+          <span className="text-xs text-gray-500">(Auto-hides in 30s)</span>
+        </div>
+      ) : dealer.alertSettings?.isAlertActive && dealer.alertSettings?.nextAlertDate ? (
+        <div className="text-xs text-orange-600 mt-1 text-center no-expand font-semibold">
+          ⏰ Alert Set: {new Date(dealer.alertSettings.nextAlertDate).toLocaleDateString('en-IN')}
+        </div>
+      ) : null}
+    </div>
+  );
+};
+
+// ✅ ADD THESE HANDLERS TO YOUR MAIN COMPONENT
+const handleAlertSet = (dealerId) => {
+  // Refresh dealers list or update specific dealer
+  fetchDealers();
+};
+
+const handleAlertReset = (dealerId) => {
+  // Refresh dealers list or update specific dealer
+  fetchDealers();
+};
 
 
   const handleWhatsAppPDF = async (customerId) => {
@@ -6334,291 +6601,442 @@ Thank you for shopping with us! 🎉`
       </form>
     </div>
 
-        {/* Dealer Payments Section Only */}
-    <div className="bg-white rounded-lg p-6 shadow-md border border-green-100">
-      <div className="flex items-center mb-6">
-        <div className="w-2 h-6 bg-green-500 rounded-full mr-2"></div>
-        <h2 className="text-xl font-bold text-gray-800">💳 Add Supplier Payment</h2>
+        {/* Dealer Payments Section */}
+<div className="bg-white rounded-lg p-6 shadow-md border border-green-100">
+  <div className="flex items-center mb-6">
+    <div className="w-2 h-6 bg-green-500 rounded-full mr-2"></div>
+    <h2 className="text-xl font-bold text-gray-800">💳 Add Supplier Payment</h2>
+  </div>
+
+  <form onSubmit={addDealerPayment}>
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+      <div>
+        <label className="block text-sm font-semibold text-gray-700 mb-1">Supplier *</label>
+        <select
+          value={dealerPaymentForm.dealer}
+          onChange={(e) => handleDealerSelectForPayment(e.target.value)}
+          className="text-black w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:border-green-500"
+          required
+        >
+          <option value="">Select Supplier</option>
+          {dealers.map(dealer => (
+            <option key={dealer._id} value={dealer._id}>{dealer.name}</option>
+          ))}
+        </select>
       </div>
 
-      <form onSubmit={addDealerPayment}>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-1">Supplier *</label>
-            <select
-              value={dealerPaymentForm.dealer}
-              onChange={(e) => setDealerPaymentForm(prev => ({...prev, dealer: e.target.value}))}
-              className="text-black w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:border-green-500"
-              required
-            >
-              <option value="">Select Supplier</option>
-              {dealers.map(dealer => (
-                <option key={dealer._id} value={dealer._id}>{dealer.name}</option>
-              ))}
-            </select>
-          </div>
+      <div>
+        <label className="block text-sm font-semibold text-gray-700 mb-1">Total Amount (₹) *</label>
+        <input
+          type="number"
+          value={dealerPaymentForm.totalAmount}
+          onChange={(e) => setDealerPaymentForm(prev => ({...prev, totalAmount: e.target.value}))}
+          placeholder="0.00"
+          min="0"
+          step="0.01"
+          className="text-black w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:border-green-500 bg-gray-50"
+          required
+          readOnly
+        />
+        <p className="text-xs text-gray-500 mt-1">Calculated from stock items</p>
+      </div>
 
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-1">Amount (₹) *</label>
-            <input
-              type="number"
-              value={dealerPaymentForm.amount}
-              onChange={(e) => setDealerPaymentForm(prev => ({...prev, amount: e.target.value}))}
-              placeholder="0.00"
-              min="0"
-              step="0.01"
-              className="text-black w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:border-green-500"
-              required
-            />
-          </div>
+      <div>
+        <label className="block text-sm font-semibold text-gray-700 mb-1">Payment Amount (₹) *</label>
+        <input
+          type="number"
+          value={dealerPaymentForm.amount}
+          onChange={(e) => setDealerPaymentForm(prev => ({...prev, amount: e.target.value}))}
+          placeholder="0.00"
+          min="0"
+          step="0.01"
+          className="text-black w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:border-green-500"
+          required
+        />
+      </div>
 
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-1">Date</label>
-            <input
-              type="date"
-              value={dealerPaymentForm.date}
-              onChange={(e) => setDealerPaymentForm(prev => ({...prev, date: e.target.value}))}
-              className="text-black w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:border-green-500"
-            />
-          </div>
-        </div>
-
-        <div className="flex justify-end">
-          <button
-            type="submit"
-            className="bg-green-500 text-white px-6 py-2 rounded-lg hover:bg-green-600 transition-colors font-semibold"
-          >
-            💰 Add Payment
-          </button>
-        </div>
-      </form>
+<div>
+  <label className="block text-sm font-semibold text-gray-700 mb-1">Date</label>
+  <input
+    type="text"
+    value={dealerPaymentForm.date}
+    onChange={(e) => {
+      let value = e.target.value;
+      // Remove any non-digit characters except slash
+      value = value.replace(/[^\d/]/g, '');
+      
+      // Auto-add slashes
+      if (value.length === 2 && !value.includes('/')) {
+        value = value + '/';
+      } else if (value.length === 5 && value.split('/').length === 2) {
+        value = value + '/';
+      }
+      
+      // Limit to 10 characters (DD/MM/YYYY)
+      if (value.length <= 10) {
+        setDealerPaymentForm(prev => ({...prev, date: value}));
+      }
+    }}
+    placeholder="DD/MM/YYYY"
+    className="text-black w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:border-green-500"
+  />
+</div>
     </div>
 
-{/* Enhanced Dealers List with Expandable Stock */}
-<div className="bg-white rounded-lg shadow-md overflow-hidden border border-orange-100">
-  <div className="p-6">
-    <div className="flex items-center justify-between mb-6">
-      <div className="flex items-center">
-        <div className="w-2 h-6 bg-orange-500 rounded-full mr-2"></div>
-        <h2 className="text-xl font-bold text-gray-800">
-          🤝 Suppliers List
-        </h2>
-      </div>
-      <div className="text-sm text-gray-500 bg-orange-50 px-3 py-1 rounded-full">
-        Total: {dealers.length} Suppliers
-      </div>
-    </div>
-    
-    {loading ? (
-      <div className="text-center py-8">
-        <div className="text-xl">⏳</div>
-        <p className="text-gray-600">Loading Suppliers...</p>
-      </div>
-    ) : dealers.length === 0 ? (
-      <div className="text-center py-8 text-gray-500">
-        <div className="text-4xl mb-2">🏢</div>
-        <p className="text-base font-semibold mb-1">No Suppliers found</p>
-        <p className="text-xs">Add your first Supplier to get started</p>
-      </div>
-    ) : (
-      <div className="overflow-x-auto">
-        <table className="w-full border-collapse">
-          <thead>
-            <tr className="bg-gradient-to-r from-orange-500 to-amber-500">
-              <th className="border border-orange-400 px-4 py-3 text-left font-bold text-white text-sm uppercase">Supplier Details</th>
-              <th className="border border-orange-400 px-4 py-3 text-center font-bold text-white text-sm uppercase">Total Stock Value</th>
-              <th className="border border-orange-400 px-4 py-3 text-center font-bold text-white text-sm uppercase">GST (18%)</th>
-              <th className="border border-orange-400 px-4 py-3 text-center font-bold text-white text-sm uppercase">Total + GST</th>
-              <th className="border border-orange-400 px-4 py-3 text-center font-bold text-white text-sm uppercase">Paid Amount</th>
-              <th className="border border-orange-400 px-4 py-3 text-center font-bold text-white text-sm uppercase">Balance</th>
-              <th className="border border-orange-400 px-4 py-3 text-center font-bold text-white text-sm uppercase">Details</th>
-            </tr>
-          </thead>
-          <tbody>
-            {dealers.slice().reverse().map((dealer, index) => {
-              const balanceInfo = getDealerBalanceInfo(dealer);
-              const isExpanded = expandedDealer === dealer._id;
-              const dealerStockItems = stockItems.filter(item => item.dealer?._id === dealer._id);
-              
-              // ✅ FRONTEND GST CALCULATION
-              const totalStockCost = dealerStockItems.reduce((sum, item) => sum + (item.cost || 0), 0);
-              const gstAmount = totalStockCost * 0.18;
-              const totalWithGST = totalStockCost + gstAmount;
-              
-              return (
-                <>
-                  <tr 
-                    key={dealer._id} 
-                    className={`border-b border-gray-200 hover:bg-orange-50 transition-colors duration-200 cursor-pointer ${
-                      index % 2 === 0 ? 'bg-white' : 'bg-gray-50'
-                    }`}
-                    onClick={() => setExpandedDealer(isExpanded ? null : dealer._id)}
-                  >
-                    <td className="border border-gray-300 px-4 py-3">
-                      <div className="font-semibold text-gray-800 text-lg">{dealer.name}</div>
-                      <div className="text-xs text-gray-600 mt-1">
-                        <div>📞 {dealer.contact}</div>
-                        <div>🏷️ {dealer.gstNumber || 'No GST'}</div>
-                        <div className="mt-1 text-gray-500 max-w-md truncate">{dealer.address}</div>
-                      </div>
-                    </td>
-                    <td className="border border-gray-300 px-4 py-3 text-center">
-                      <div className="text-blue-600 font-bold text-sm">
-                        ₹{totalStockCost.toFixed(2)}
-                      </div>
-                    </td>
-                    <td className="border border-gray-300 px-4 py-3 text-center">
-                      <div className="text-purple-600 font-bold text-sm">
-                        ₹{gstAmount.toFixed(2)}
-                      </div>
-                    </td>
-                    <td className="border border-gray-300 px-4 py-3 text-center">
-                      <div className="text-green-600 font-bold text-lg">
-                        ₹{totalWithGST.toFixed(2)}
-                      </div>
-                    </td>
-                    <td className="border border-gray-300 px-4 py-3 text-center">
-                      <div className="text-green-600 font-bold text-lg">
-                        ₹{balanceInfo.totalPayments.toFixed(2)}
-                      </div>
-                    </td>
-                    <td className="border border-gray-300 px-4 py-3 text-center">
-                      <div className={`font-bold text-lg ${
-                        balanceInfo.balance > 0 ? 'text-red-600' : 
-                        balanceInfo.balance < 0 ? 'text-blue-600' : 'text-gray-600'
-                      }`}>
-                        ₹{Math.abs(balanceInfo.balance).toFixed(2)}
-                      </div>
-                      <div className="text-xs text-gray-500 mt-1">
-                        {balanceInfo.balance > 0 ? 'You Owe' : 
-                         balanceInfo.balance < 0 ? 'You Get' : 'Settled'}
-                      </div>
-                    </td>
-                    <td className="border border-gray-300 px-4 py-3 text-center">
-                      <button
-                        className={`px-4 py-2 rounded-lg font-semibold transition-all duration-200 ${
-                          isExpanded 
-                            ? 'bg-red-500 text-white hover:bg-red-600' 
-                            : 'bg-blue-500 text-white hover:bg-blue-600'
-                        }`}
-                      >
-                        {isExpanded ? '▲ Hide Stock' : '▼ Show Stock'}
-                      </button>
-                    </td>
-                  </tr>
-                  
-                  {/* Expanded Stock Details Row */}
-                  {isExpanded && (
-                    <tr className="bg-blue-50">
-                      <td colSpan="7" className="border border-gray-300 px-4 py-4">
-                        <div className="mb-4">
-                          <h4 className="font-bold text-blue-800 text-lg mb-3">📦 Stock Items from {dealer.name}</h4>
-                          
-                          {dealerStockItems.length === 0 ? (
-                            <div className="text-center py-4 text-gray-500">
-                              <div className="text-2xl mb-2">📭</div>
-                              <p>No stock items found for this Supplier</p>
-                            </div>
-                          ) : (
-                            <div className="overflow-x-auto h-100">
-                              <table className="w-full border-collapse">
-                                <thead>
-                                  <tr className="bg-gradient-to-r from-blue-400 to-blue-500">
-                                    <th className="border border-blue-300 px-3 py-2 text-left font-bold text-white text-xs uppercase">IMEI</th>
-                                    <th className="border border-blue-300 px-3 py-2 text-left font-bold text-white text-xs uppercase">Brand</th>
-                                    <th className="border border-blue-300 px-3 py-2 text-left font-bold text-white text-xs uppercase">Model</th>
-                                    <th className="border border-blue-300 px-3 py-2 text-left font-bold text-white text-xs uppercase">HSN</th>
-                                    <th className="border border-blue-300 px-3 py-2 text-center font-bold text-white text-xs uppercase">Cost (₹)</th>
-                                    <th className="border border-blue-300 px-3 py-2 text-center font-bold text-white text-xs uppercase">GST (18%)</th>
-                                    <th className="border border-blue-300 px-3 py-2 text-center font-bold text-white text-xs uppercase">Total (₹)</th>
-                                    <th className="border border-blue-300 px-3 py-2 text-center font-bold text-white text-xs uppercase">Status</th>
-                                  </tr>
-                                </thead>
-                                <tbody>
-                                  {dealerStockItems.map((stockItem, stockIndex) => {
-                                    // ✅ INDIVIDUAL ITEM GST CALCULATION
-                                    const itemGST = (stockItem.cost || 0) * 0.18;
-                                    const itemTotal = (stockItem.cost || 0) + itemGST;
-                                    
-                                    return (
-                                      <tr 
-                                        key={stockItem._id} 
-                                        className={`border-b border-gray-200 hover:bg-blue-100 transition-colors duration-150 ${
-                                          stockIndex % 2 === 0 ? 'bg-white' : 'bg-blue-50'
-                                        }`}
-                                      >
-                                        <td className="border border-gray-300 px-3 py-2 font-mono text-blue-600 bg-blue-50 text-xs">
-                                          {stockItem.imei || 'N/A'}
-                                        </td>
-                                      <td className="border border-gray-200 px-3 py-2 whitespace-nowrap text-gray-800 font-medium text-sm">
-                                        {stockItem.product?.name ||
-                                        'N/A'}
-                                      </td>
-                                        <td className="border border-gray-300 px-3 py-2 whitespace-nowrap text-gray-700 text-sm">
-                                          {stockItem.variant?.variantName || 'N/A'}
-                                        </td>
-                                        <td className="border border-gray-300 px-3 py-2 font-mono whitespace-nowrap text-gray-700 text-sm">
-                                          {stockItem.hsn || 'N/A'}
-                                        </td>
-                                        <td className="border border-gray-300 px-3 py-2 font-semibold whitespace-nowrap text-blue-600 text-sm text-center">
-                                          ₹{(stockItem.cost || 0).toFixed(2)}
-                                        </td>
-                                        <td className="border border-gray-300 px-3 py-2 font-semibold whitespace-nowrap text-purple-600 text-sm text-center">
-                                          ₹{itemGST.toFixed(2)}
-                                        </td>
-                                        <td className="border border-gray-300 px-3 py-2 font-semibold whitespace-nowrap text-green-600 text-base text-center">
-                                          ₹{itemTotal.toFixed(2)}
-                                        </td>
-                                        <td className="border border-gray-300 px-3 py-2 whitespace-nowrap text-center">
-                                          <span className={`inline-flex items-center justify-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                                            stockItem.status === 'sold' 
-                                              ? 'bg-red-100 text-red-800 border border-red-200' 
-                                              : 'bg-green-100 text-green-800 border border-green-200'
-                                          }`}>
-                                            {stockItem.status === 'sold' ? '🔴 Sold' : '📦 In Stock'}
-                                          </span>
-                                        </td>
-                                      </tr>
-                                    );
-                                  })}
-                                </tbody>
-                                <tfoot>
-                                  <tr className="bg-blue-100">
-                                    <td colSpan="4" className="border border-gray-300 px-3 py-2 text-right font-bold text-gray-800">
-                                      Totals:
-                                    </td>
-                                    <td className="border border-gray-300 px-3 py-2 text-center font-bold text-blue-700">
-                                      ₹{totalStockCost.toFixed(2)}
-                                    </td>
-                                    <td className="border border-gray-300 px-3 py-2 text-center font-bold text-purple-700">
-                                      ₹{gstAmount.toFixed(2)}
-                                    </td>
-                                    <td className="border border-gray-300 px-3 py-2 text-center font-bold text-green-700">
-                                      ₹{totalWithGST.toFixed(2)}
-                                    </td>
-                                    <td className="border border-gray-300 px-3 py-2 text-center">
-                                      <div className="text-xs text-gray-600">
-                                        {dealerStockItems.filter(item => item.status === 'in_stock').length} in stock
-                                      </div>
-                                    </td>
-                                  </tr>
-                                </tfoot>
-                              </table>
-                            </div>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  )}
-                </>
-              );
-            })}
-          </tbody>
-        </table>
+    {/* Balance Preview */}
+    {dealerPaymentForm.totalAmount && dealerPaymentForm.amount && (
+      <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+        <div className="flex justify-between items-center">
+          <span className="font-semibold text-blue-800">Balance after payment:</span>
+          <span className={`font-bold text-lg ${
+            (parseFloat(dealerPaymentForm.totalAmount) - parseFloat(dealerPaymentForm.amount)) > 0 
+              ? 'text-red-600' 
+              : 'text-green-600'
+          }`}>
+            ₹{(parseFloat(dealerPaymentForm.totalAmount) - parseFloat(dealerPaymentForm.amount)).toFixed(2)}
+          </span>
+        </div>
       </div>
     )}
-  </div>
+
+    <div className="flex justify-end">
+      <button
+        type="submit"
+        className="bg-green-500 text-white px-6 py-2 rounded-lg hover:bg-green-600 transition-colors font-semibold"
+      >
+        💰 Add Payment
+      </button>
+    </div>
+  </form>
 </div>
+
+ {/* Enhanced Dealers List with Expandable Stock */}
+    <div className="bg-white rounded-lg shadow-md overflow-hidden border border-orange-100">
+      <div className="p-6">
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center">
+            <div className="w-2 h-6 bg-orange-500 rounded-full mr-2"></div>
+            <h2 className="text-xl font-bold text-gray-800">
+              🤝 Suppliers List
+            </h2>
+          </div>
+          <div className="text-sm text-gray-500 bg-orange-50 px-3 py-1 rounded-full">
+            Total: {dealers.length} Suppliers
+          </div>
+        </div>
+        
+        {loading ? (
+          <div className="text-center py-8">
+            <div className="text-xl">⏳</div>
+            <p className="text-gray-600">Loading Suppliers...</p>
+          </div>
+        ) : dealers.length === 0 ? (
+          <div className="text-center py-8 text-gray-500">
+            <div className="text-4xl mb-2">🏢</div>
+            <p className="text-base font-semibold mb-1">No Suppliers found</p>
+            <p className="text-xs">Add your first Supplier to get started</p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full border-collapse">
+              <thead>
+                <tr className="bg-gradient-to-r from-orange-500 to-amber-500">
+                  <th className="border border-orange-400 px-4 py-3 text-left font-bold text-white text-sm uppercase">Supplier Details</th>
+                  <th className="border border-orange-400 px-4 py-3 text-center font-bold text-white text-sm uppercase">Total Stock Value</th>
+                  <th className="border border-orange-400 px-4 py-3 text-center font-bold text-white text-sm uppercase">GST (18%)</th>
+                  <th className="border border-orange-400 px-4 py-3 text-center font-bold text-white text-sm uppercase">Total + GST</th>
+                  <th className="border border-orange-400 px-4 py-3 text-center font-bold text-white text-sm uppercase">Paid Amount</th>
+                  <th className="border border-orange-400 px-4 py-3 text-center font-bold text-white text-sm uppercase">Balance</th>
+                  <th className="border border-orange-400 px-4 py-3 text-center font-bold text-white text-sm uppercase">Details</th>
+                  <th className="border border-orange-400 px-4 py-3 text-center font-bold text-white text-sm uppercase w-40">🔔 Send Alert</th>
+                </tr>
+              </thead>
+              <tbody>
+                {dealers.slice().reverse().map((dealer, index) => {
+                  const balanceInfo = getDealerBalanceInfo(dealer);
+                  const isExpanded = expandedDealer === dealer._id;
+                  const dealerStockItems = stockItems.filter(item => item.dealer?._id === dealer._id);
+                  
+                  // ✅ FRONTEND GST CALCULATION
+                  const totalStockCost = dealerStockItems.reduce((sum, item) => sum + (item.cost || 0), 0);
+                  const gstAmount = totalStockCost * 0.18;
+                  const totalWithGST = totalStockCost + gstAmount;
+                  
+                  return (
+                    <>
+                      <tr 
+                        key={dealer._id} 
+                        className={`border-b border-gray-200 hover:bg-orange-50 transition-colors duration-200 ${
+                          index % 2 === 0 ? 'bg-white' : 'bg-gray-50'
+                        }`}
+                        onClick={(e) => {
+                          // ✅ ONLY expand if clicking on the row itself, not on buttons/inputs
+                          if (!e.target.closest('button') && !e.target.closest('input') && !e.target.closest('.no-expand')) {
+                            setExpandedDealer(isExpanded ? null : dealer._id);
+                          }
+                        }}
+                      >
+                        <td className="border border-gray-300 px-4 py-3">
+                          <div className="font-semibold text-gray-800 text-lg">{dealer.name}</div>
+                          <div className="text-xs text-gray-600 mt-1">
+                            <div>📞 {dealer.contact}</div>
+                            <div>🏷️ {dealer.gstNumber || 'No GST'}</div>
+                            <div className="mt-1 text-gray-500 max-w-md truncate">{dealer.address}</div>
+                          </div>
+                        </td>
+                        <td className="border border-gray-300 px-4 py-3 text-center">
+                          <div className="text-blue-600 font-bold text-sm">
+                            ₹{totalStockCost.toFixed(2)}
+                          </div>
+                        </td>
+                        <td className="border border-gray-300 px-4 py-3 text-center">
+                          <div className="text-purple-600 font-bold text-sm">
+                            ₹{gstAmount.toFixed(2)}
+                          </div>
+                        </td>
+                        <td className="border border-gray-300 px-4 py-3 text-center">
+                          <div className="text-green-600 font-bold text-lg">
+                            ₹{totalWithGST.toFixed(2)}
+                          </div>
+                        </td>
+                        <td className="border border-gray-300 px-4 py-3 text-center">
+                          <div className="text-green-600 font-bold text-lg">
+                            ₹{balanceInfo.totalPayments.toFixed(2)}
+                          </div>
+                        </td>
+                        <td className="border border-gray-300 px-4 py-3 text-center">
+                          <div className={`font-bold text-lg ${
+                            balanceInfo.balance > 0 ? 'text-red-600' : 
+                            balanceInfo.balance < 0 ? 'text-blue-600' : 'text-gray-600'
+                          }`}>
+                            ₹{Math.abs(balanceInfo.balance).toFixed(2)}
+                          </div>
+                          <div className="text-xs text-gray-500 mt-1">
+                            {balanceInfo.balance > 0 ? 'You Owe' : 
+                             balanceInfo.balance < 0 ? 'You Get' : 'Settled'}
+                          </div>
+                        </td>
+                        
+                        {/* ✅ FIXED: Details Button */}
+                        <td className="border border-gray-300 px-4 py-3 text-center">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation(); // Prevent row expansion
+                              console.log('📊 Details clicked for:', dealer.name);
+                              setSelectedDealerForDetails(dealer);
+                              setShowPaymentDetails(true);
+                              fetchDealerPaymentDetails(dealer._id);
+                            }}
+                            className="bg-purple-500 text-white px-4 py-2 rounded-lg hover:bg-purple-600 transition-colors font-semibold"
+                          >
+                            📊 Details
+                          </button>
+                        </td>
+
+                        {/* Alert Section */}
+                        <td className="border border-gray-300 px-4 py-3 text-center text-black no-expand">
+                          <DealerAlertSection 
+                            dealer={dealer} 
+                            onAlertSet={handleAlertSet}
+                            onAlertReset={handleAlertReset}
+                          />
+                        </td>
+                      </tr>
+                      
+                      {/* ✅ EXPANDED STOCK TABLE - Shows when row is expanded */}
+                      {isExpanded && (
+                        <tr className="bg-blue-50">
+                          <td colSpan="8" className="border border-gray-300 px-4 py-4">
+                            <div className="mb-4">
+                              <h4 className="font-bold text-blue-800 text-lg mb-3">📦 Stock Items from {dealer.name}</h4>
+                              
+                              {dealerStockItems.length === 0 ? (
+                                <div className="text-center py-4 text-gray-500">
+                                  <div className="text-2xl mb-2">📭</div>
+                                  <p>No stock items found for this Supplier</p>
+                                </div>
+                              ) : (
+                                <div className="overflow-x-auto h-100">
+                                  <table className="w-full border-collapse">
+                                    <thead>
+                                      <tr className="bg-gradient-to-r from-blue-400 to-blue-500">
+                                        <th className="border border-blue-300 px-3 py-2 text-left font-bold text-white text-xs uppercase">IMEI</th>
+                                        <th className="border border-blue-300 px-3 py-2 text-left font-bold text-white text-xs uppercase">Brand</th>
+                                        <th className="border border-blue-300 px-3 py-2 text-left font-bold text-white text-xs uppercase">Model</th>
+                                        <th className="border border-blue-300 px-3 py-2 text-left font-bold text-white text-xs uppercase">HSN</th>
+                                        <th className="border border-blue-300 px-3 py-2 text-center font-bold text-white text-xs uppercase">Cost (₹)</th>
+                                        <th className="border border-blue-300 px-3 py-2 text-center font-bold text-white text-xs uppercase">GST (18%)</th>
+                                        <th className="border border-blue-300 px-3 py-2 text-center font-bold text-white text-xs uppercase">Total (₹)</th>
+                                        <th className="border border-blue-300 px-3 py-2 text-center font-bold text-white text-xs uppercase">Status</th>
+                                      </tr>
+                                    </thead>
+                                    <tbody>
+                                      {dealerStockItems.map((stockItem, stockIndex) => {
+                                        // ✅ INDIVIDUAL ITEM GST CALCULATION
+                                        const itemGST = (stockItem.cost || 0) * 0.18;
+                                        const itemTotal = (stockItem.cost || 0) + itemGST;
+                                        
+                                        return (
+                                          <tr 
+                                            key={stockItem._id} 
+                                            className={`border-b border-gray-200 hover:bg-blue-100 transition-colors duration-150 ${
+                                              stockIndex % 2 === 0 ? 'bg-white' : 'bg-blue-50'
+                                            }`}
+                                          >
+                                            <td className="border border-gray-300 px-3 py-2 font-mono text-blue-600 bg-blue-50 text-xs">
+                                              {stockItem.imei || 'N/A'}
+                                            </td>
+                                            <td className="border border-gray-200 px-3 py-2 whitespace-nowrap text-gray-800 font-medium text-sm">
+                                              {stockItem.product?.name || 'N/A'}
+                                            </td>
+                                            <td className="border border-gray-300 px-3 py-2 whitespace-nowrap text-gray-700 text-sm">
+                                              {stockItem.variant?.variantName || 'N/A'}
+                                            </td>
+                                            <td className="border border-gray-300 px-3 py-2 font-mono whitespace-nowrap text-gray-700 text-sm">
+                                              {stockItem.hsn || 'N/A'}
+                                            </td>
+                                            <td className="border border-gray-300 px-3 py-2 font-semibold whitespace-nowrap text-blue-600 text-sm text-center">
+                                              ₹{(stockItem.cost || 0).toFixed(2)}
+                                            </td>
+                                            <td className="border border-gray-300 px-3 py-2 font-semibold whitespace-nowrap text-purple-600 text-sm text-center">
+                                              ₹{itemGST.toFixed(2)}
+                                            </td>
+                                            <td className="border border-gray-300 px-3 py-2 font-semibold whitespace-nowrap text-green-600 text-base text-center">
+                                              ₹{itemTotal.toFixed(2)}
+                                            </td>
+                                            <td className="border border-gray-300 px-3 py-2 whitespace-nowrap text-center">
+                                              <span className={`inline-flex items-center justify-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                                                stockItem.status === 'sold' 
+                                                  ? 'bg-red-100 text-red-800 border border-red-200' 
+                                                  : 'bg-green-100 text-green-800 border border-green-200'
+                                              }`}>
+                                                {stockItem.status === 'sold' ? '🔴 Sold' : '📦 In Stock'}
+                                              </span>
+                                            </td>
+                                          </tr>
+                                        );
+                                      })}
+                                    </tbody>
+                                    <tfoot>
+                                      <tr className="bg-blue-100">
+                                        <td colSpan="4" className="border border-gray-300 px-3 py-2 text-right font-bold text-gray-800">
+                                          Totals:
+                                        </td>
+                                        <td className="border border-gray-300 px-3 py-2 text-center font-bold text-blue-700">
+                                          ₹{totalStockCost.toFixed(2)}
+                                        </td>
+                                        <td className="border border-gray-300 px-3 py-2 text-center font-bold text-purple-700">
+                                          ₹{gstAmount.toFixed(2)}
+                                        </td>
+                                        <td className="border border-gray-300 px-3 py-2 text-center font-bold text-green-700">
+                                          ₹{totalWithGST.toFixed(2)}
+                                        </td>
+                                        <td className="border border-gray-300 px-3 py-2 text-center">
+                                          <div className="text-xs text-gray-600">
+                                            {dealerStockItems.filter(item => item.status === 'in_stock').length} in stock
+                                          </div>
+                                        </td>
+                                      </tr>
+                                    </tfoot>
+                                  </table>
+                                </div>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    </div>
+
+    {/* ✅ PAYMENT DETAILS MODAL - Shows when Details button is clicked */}
+    {showPaymentDetails && selectedDealerForDetails && (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-hidden">
+          <div className="p-6 border-b border-gray-200">
+            <div className="flex justify-between items-center">
+              <h3 className="text-xl font-bold text-gray-800">
+                Payment Details - {selectedDealerForDetails.name}
+              </h3>
+              <button
+                onClick={() => {
+                  setShowPaymentDetails(false);
+                  setSelectedDealerForDetails(null);
+                  setDealerPaymentDetails([]);
+                }}
+                className="text-gray-500 hover:text-gray-700 text-2xl"
+              >
+                ×
+              </button>
+            </div>
+          </div>
+          
+          <div className="p-6 overflow-y-auto max-h-[60vh]">
+            {dealerPaymentDetails.length === 0 ? (
+              <div className="text-center py-8 text-gray-500">
+                <div className="text-4xl mb-2">💰</div>
+                <p className="text-lg font-semibold">No Payment History</p>
+                <p className="text-sm">No payments have been made to this supplier yet.</p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full border-collapse">
+                  <thead>
+                    <tr className="bg-gradient-to-r from-purple-500 to-purple-600">
+                      <th className="border border-purple-400 px-4 py-3 text-left font-bold text-white text-sm uppercase">Date</th>
+                      <th className="border border-purple-400 px-4 py-3 text-center font-bold text-white text-sm uppercase">Total Amount (₹)</th>
+                      <th className="border border-purple-400 px-4 py-3 text-center font-bold text-white text-sm uppercase">Payment Made (₹)</th>
+                      <th className="border border-purple-400 px-4 py-3 text-center font-bold text-white text-sm uppercase">Balance (₹)</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {dealerPaymentDetails.map((payment, index) => (
+                      <tr key={index} className="border-b border-gray-200 hover:bg-purple-50">
+                        <td className="border border-gray-300 px-4 py-3 whitespace-nowrap text-black">
+                          {new Date(payment.date).toLocaleDateString('en-IN')}
+                        </td>
+                        <td className="border border-gray-300 px-4 py-3 text-center font-semibold text-blue-600">
+                          ₹{payment.totalAmount.toFixed(2)}
+                        </td>
+                        <td className="border border-gray-300 px-4 py-3 text-center font-semibold text-green-600">
+                          ₹{payment.paymentMade.toFixed(2)}
+                        </td>
+                        <td className="border border-gray-300 px-4 py-3 text-center font-semibold">
+                          <span className={payment.balance > 0 ? 'text-red-600' : 'text-green-600'}>
+                            ₹{Math.abs(payment.balance).toFixed(2)}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+          
+          <div className="p-4 border-t border-gray-200 bg-gray-50">
+            <div className="flex justify-end">
+              <button
+                onClick={() => {
+                  setShowPaymentDetails(false);
+                  setSelectedDealerForDetails(null);
+                  setDealerPaymentDetails([]);
+                }}
+                className="bg-gray-500 text-white px-6 py-2 rounded-lg hover:bg-gray-600 transition-colors font-semibold"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    )}
   </div>
 )}
 
@@ -6704,7 +7122,7 @@ Thank you for shopping with us! 🎉`
                                     year: 'numeric'
                                   })}
                                 </td>
-                                <td colSpan={shopType === 'service' ? "10" : "10"} className="border border-gray-300 px-4 py-3 font-bold text-blue-800 text-center text-sm">
+                                <td colSpan={shopType === 'service' ? "11" : "10"} className="border border-gray-300 px-4 py-3 font-bold text-blue-800 text-center text-sm">
                                   📊 Daily Total ({dailyData.count} {dailyData.count === 1 ? 'bill' : 'bills'})
                                 </td>
                                 <td colSpan={shopType === 'service' ? "3" : "2"} className="border border-gray-300 px-3 py-3 font-bold text-green-700 whitespace-nowrap text-center">
