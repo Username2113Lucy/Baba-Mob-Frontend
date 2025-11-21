@@ -1128,19 +1128,33 @@ const handleAddCustomer = async () => {
   try {
     const invoiceNumber = generateInvoiceNumber();
 
+    // ✅ FIX: Handle paymentMode properly for both service and sales
+    let validPaymentMode = customerData.paymentMode;
+    
+    // For service customers, paymentMode can be empty, but backend expects a valid enum
+    if (shopType === 'service' && (!validPaymentMode || validPaymentMode === '')) {
+      validPaymentMode = 'cash'; // Set default for service
+    }
+    
+    // For sales, it should already be validated above
+    if (shopType === 'sales' && (!validPaymentMode || validPaymentMode === '')) {
+      alert('Please select a payment mode for sales customer');
+      return;
+    }
+
     // Prepare customer data
     const newCustomer = {
       invoiceNumber: invoiceNumber,
       customerName: customerData.name,
       phone: customerData.phone,
-      address: customerData.address, // ✅ ADDED: Mandatory address
+      address: customerData.address,
       cost: parseFloat(customerData.cost),
       brand: customerData.brand,
       stock: customerData.stock || '',
       model: customerData.model || '',
       password: customerData.password || '',
-      paymentMode: customerData.paymentMode || '',
-      financeCompany: customerData.paymentMode === 'emi' ? customerData.financeCompany : '', // ✅ ADDED
+      paymentMode: validPaymentMode, // ✅ Now this will never be empty
+      financeCompany: customerData.paymentMode === 'emi' ? customerData.financeCompany : '',
       warrantyDays: parseInt(customerData.warrantyDays) || 0,
       imei: customerData.imei || '',
       cashier: customerData.cashier,
@@ -1148,7 +1162,7 @@ const handleAddCustomer = async () => {
       issue: customerData.issue || '',
       status: 'not paid',
       balance: parseFloat(customerData.cost),
-      gstNumber: shopType === 'sales' ? customerData.gstNumber || '' : '' // ✅ ADDED: GST number only for sales
+      gstNumber: shopType === 'sales' ? customerData.gstNumber || '' : ''
     };
 
     console.log('📤 Creating customer:', newCustomer);
@@ -1196,12 +1210,12 @@ const handleAddCustomer = async () => {
       setCustomers(updatedCustomers);
       setAllCustomers(updatedAllCustomers);
       
-// Reset form
-setCustomerData({ 
-  name: '', phone: '', address: '', issue: '', cost: '', brand: '', stock: '', model: '',
-  password: '', paymentMode: '', financeCompany: '', warrantyDays: '', imei: '', cashier: '', 
-  gstNumber: '' // ✅ Add this
-});
+      // Reset form
+      setCustomerData({ 
+        name: '', phone: '', address: '', issue: '', cost: '', brand: '', stock: '', model: '',
+        password: '', paymentMode: 'cash', financeCompany: '', warrantyDays: '', imei: '', cashier: '', // ✅ Set default paymentMode
+        gstNumber: ''
+      });
       
       alert(`✅ Customer added successfully! Invoice: ${invoiceNumber}`);
       
