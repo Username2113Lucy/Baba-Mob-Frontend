@@ -2630,12 +2630,12 @@ const handleAddMultiBrandCustomer = async () => {
     return;
   }
 
-  try {
-    // Generate invoice number first
+    try {
     const invoiceNumber = generateMultiBrandInvoiceNumber();
-    console.log('📄 Generated Invoice Number:', invoiceNumber);
     
-    // Prepare the data with correct billType
+    // ✅ FIX: Ensure paymentMode has a valid value
+    const validPaymentMode = multiBrandData.paymentMode || 'cash';
+
     const customerData = {
       invoiceNumber: invoiceNumber,
       customerName: multiBrandData.name.trim(),
@@ -2644,14 +2644,13 @@ const handleAddMultiBrandCustomer = async () => {
       cost: cost,
       shopType: 'sales',
       cashier: multiBrandData.cashier,
-      // Optional fields
       brand: multiBrandData.brand || '',
       model: multiBrandData.model || '',
       imei: multiBrandData.imei || '',
-      paymentMode: multiBrandData.paymentMode,
+      paymentMode: validPaymentMode,
       financeCompany: multiBrandData.financeCompany || '',
       gstNumber: multiBrandData.gstNumber || '',
-      billType: 'multi-brand', // ✅ Correct value
+      billType: 'multi-brand',
       date: new Date().toISOString()
     };
 
@@ -2668,13 +2667,33 @@ const handleAddMultiBrandCustomer = async () => {
     console.log('📥 Response Status:', response.status);
 
     if (!response.ok) {
-      const errorData = await response.json();
-      console.error('❌ Server Error:', errorData);
+      const errorData = await response.json().catch(() => ({}));
       throw new Error(errorData.message || 'Server error while creating customer');
     }
 
     const result = await response.json();
     console.log('✅ Customer created successfully:', result);
+    
+    // ✅ ADD THIS: Mark stock item as sold for multi-brand
+    if (multiBrandData.imei) {
+      try {
+        const stockItem = stockItems.find(item => item.imei === multiBrandData.imei);
+        if (stockItem) {
+          await fetch(`${STOCK_API}/${stockItem._id}/sold`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ customerId: result.data._id }) // Use the created customer ID
+          });
+          console.log('✅ Multi-brand stock item marked as sold');
+          
+          // Refresh stock data to show updated status
+          await fetchStockData();
+        }
+      } catch (stockError) {
+        console.error('⚠️ Error updating multi-brand stock item:', stockError);
+        // Continue even if stock update fails
+      }
+    }
     
     // Reset form after success
     setMultiBrandData({
@@ -2692,6 +2711,9 @@ const handleAddMultiBrandCustomer = async () => {
     });
     
     alert('Multi-brand customer added successfully!');
+    
+    // Refresh multi-brand customers list
+    await fetchMultiBrandCustomers();
     
   } catch (error) {
     console.error('❌ Error creating multi-brand customer:', error);
