@@ -1023,7 +1023,7 @@ const fetchAllCustomers = async (filters = {}) => {
     }
   };
 
-// ✅ SIMPLE: Invoice number generation without reset
+// ✅ UPDATED: Invoice number generation with custom jump condition
 const generateInvoiceNumber = () => {
   const prefix = shopType === 'sales' ? 'B' : 'SV';
   
@@ -1035,21 +1035,52 @@ const generateInvoiceNumber = () => {
   
   // If no customers, start from 001
   if (shopCustomers.length === 0) {
-    return shopType === 'sales' ? 'B001' : 'SV001';
+    return shopType === 'sales' ? 'B25-26-001' : 'SV25-26-001';
   }
   
-  // Extract numbers from existing invoice numbers
-  const numbers = shopCustomers.map(customer => {
-    if (!customer.invoiceNumber) return 0;
+  // Extract numbers from existing invoice numbers and find the latest
+  let latestNumber = 0;
+  let latestInvoice = '';
+  
+  shopCustomers.forEach(customer => {
+    if (!customer.invoiceNumber) return;
     
     // Remove prefix and convert to number
     const numberStr = customer.invoiceNumber.replace(prefix, '');
-    return parseInt(numberStr) || 0;
+    const currentNumber = parseInt(numberStr) || 0;
+    
+    if (currentNumber > latestNumber) {
+      latestNumber = currentNumber;
+      latestInvoice = customer.invoiceNumber;
+    }
   });
   
-  // Find the highest number and increment
-  const maxNumber = Math.max(...numbers);
-  const nextNumber = maxNumber + 1;
+  // ✅ CUSTOM JUMP CONDITION
+  let nextNumber;
+  
+  if (shopType === 'sales') {
+    // For sales: if last bill was B003, next should be B706
+    if (latestInvoice === 'B706') {
+      nextNumber = 1001;
+    } else {
+      nextNumber = latestNumber + 1;
+    }
+  } else {
+    // For service: if last bill was SV007, next should be SV705
+    if (latestInvoice === 'SV705') {
+      nextNumber = 1001;
+    } else {
+      nextNumber = latestNumber + 1;
+    }
+  }
+  
+  console.log('🧾 Invoice Generation:', {
+    shopType,
+    latestInvoice,
+    latestNumber,
+    nextNumber,
+    nextInvoice: `${prefix}${nextNumber.toString().padStart(3, '0')}`
+  });
   
   return `${prefix}${nextNumber.toString().padStart(3, '0')}`;
 };
@@ -2988,22 +3019,49 @@ const getNextMultiBrandInvoiceNumber = () => {
   return maxInvoiceNumber + 1;
 };
 
-// ✅ SIMPLE: Multi-brand invoice number
+// ✅ UPDATED: Multi-brand invoice number with custom jump condition
 const generateMultiBrandInvoiceNumber = () => {
   if (multiBrandCustomers.length === 0) {
-    return 'M001';
+    return 'M25-26-001';
   }
   
-  const invoiceNumbers = multiBrandCustomers.map(customer => {
+  // Find the latest multi-brand invoice number
+  let latestNumber = 0;
+  let latestInvoice = '';
+  
+  multiBrandCustomers.forEach(customer => {
+    if (!customer.invoiceNumber) return;
+    
     const invoiceStr = customer.invoiceNumber.replace('M', '');
-    return parseInt(invoiceStr) || 0;
+    const currentNumber = parseInt(invoiceStr) || 0;
+    
+    if (currentNumber > latestNumber) {
+      latestNumber = currentNumber;
+      latestInvoice = customer.invoiceNumber;
+    }
   });
   
-  const maxInvoiceNumber = Math.max(...invoiceNumbers);
-  const nextNumber = maxInvoiceNumber + 1;
+  // ✅ CUSTOM JUMP CONDITION FOR MULTI-BRAND
+  let nextNumber;
+  
+  // If last bill was M003, next should be M706
+  if (latestInvoice === 'M25-26-001') {
+    nextNumber = 706;
+  } 
+  // Otherwise normal increment
+  else {
+    nextNumber = latestNumber + 1;
+  }
+  
+  console.log('🧾 Multi-brand Invoice Generation:', {
+    latestInvoice,
+    latestNumber,
+    nextNumber,
+    nextInvoice: `M${nextNumber.toString().padStart(3, '0')}`
+  });
+  
   return `M${nextNumber.toString().padStart(3, '0')}`;
 };
-
 
 
 // Add this useEffect to persist multi-brand data
@@ -3902,90 +3960,7 @@ return (
                 />
               </div>
 
-              {/* Brand Dropdown */}
-              <div className="space-y-1">
-                <label className="block text-xs font-semibold text-gray-700 mb-1">
-                  🏷️ Brand *
-                </label>
-                <select
-                  name="brand"
-                  value={customerData.brand}
-                  onChange={(e) => setCustomerData(prev => ({...prev, brand: e.target.value, model: '', stock: '', imei: ''}))}
-                  className="text-gray-800 w-full h-10 border border-gray-300 rounded-lg px-3 focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-200 transition-all duration-200 bg-white"
-                >
-                  <option value="">Select Brand</option>
-                  {products.map((product) => (
-                    <option key={product._id} value={product.name}>
-                      {product.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Service: Stock Dropdown */}
-              {shopType === 'service' && (
-                <div className="space-y-1">
-                  <label className="block text-xs font-semibold text-gray-700 mb-1">
-                    📦 Stock Item *
-                  </label>
-                  <select
-                    name="stock"
-                    value={customerData.stock}
-                    onChange={handleInputChange}
-                    disabled={!customerData.brand}
-                    className={`text-gray-800 w-full h-10 border border-gray-300 rounded-lg px-3 focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-200 transition-all duration-200 bg-white ${
-                      !customerData.brand ? 'opacity-50 cursor-not-allowed' : ''
-                    }`}
-                  >
-                    <option value="">Select Stock Item</option>
-                    {variants
-                      .filter(v => 
-                        v.productName === customerData.brand || 
-                        v.product?.name === customerData.brand
-                      )
-                      .map((variant) => (
-                        <option key={variant._id} value={variant.variantName}>
-                          {variant.variantName} - ₹{variant.sellingPrice} (Stock: {variant.quantity})
-                        </option>
-                      ))
-                    }
-                  </select>
-                </div>
-              )}
-
-              {/* Sales: Model Item Dropdown */}
-              {shopType === 'sales' && (
-                <div className="space-y-1">
-                  <label className="block text-xs font-semibold text-gray-700 mb-1">
-                    📱 Model Item *
-                  </label>
-                  <select
-                    name="model"
-                    value={customerData.model}
-                    onChange={(e) => setCustomerData(prev => ({...prev, model: e.target.value, imei: ''}))}
-                    disabled={!customerData.brand}
-                    className={`text-gray-800 w-full h-10 border border-gray-300 rounded-lg px-3 focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-200 transition-all duration-200 bg-white ${
-                      !customerData.brand ? 'opacity-50 cursor-not-allowed' : ''
-                    }`}
-                  >
-                    <option value="">Select Model Item</option>
-                    {variants
-                      .filter(v => 
-                        (v.productName === customerData.brand || 
-                         v.product?.name === customerData.brand) &&
-                        v.shopType === 'sales'
-                      )
-                      .map((variant) => (
-                        <option key={variant._id} value={variant.variantName}>
-                          {variant.variantName} 
-                        </option>
-                      ))
-                    }
-                  </select>
-                </div>
-              )}
-
-{/* IMEI Field - Combined Input & Dropdown with Real-time Filtering */}
+              {/* IMEI Field - Combined Input & Dropdown with Real-time Filtering */}
 {shopType === 'sales' && (
   <div className="space-y-1">
     <label className="block text-xs font-semibold text-gray-700 mb-1">
@@ -4135,6 +4110,91 @@ return (
 })()}
   </div>
 )}
+
+              {/* Brand Dropdown */}
+              <div className="space-y-1">
+                <label className="block text-xs font-semibold text-gray-700 mb-1">
+                  🏷️ Brand *
+                </label>
+                <select
+                  name="brand"
+                  value={customerData.brand}
+                  onChange={(e) => setCustomerData(prev => ({...prev, brand: e.target.value, model: '', stock: '', imei: ''}))}
+                  className="text-gray-800 w-full h-10 border border-gray-300 rounded-lg px-3 focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-200 transition-all duration-200 bg-white"
+                >
+                  <option value="">Select Brand</option>
+                  {products.map((product) => (
+                    <option key={product._id} value={product.name}>
+                      {product.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Service: Stock Dropdown */}
+              {shopType === 'service' && (
+                <div className="space-y-1">
+                  <label className="block text-xs font-semibold text-gray-700 mb-1">
+                    📦 Stock Item *
+                  </label>
+                  <select
+                    name="stock"
+                    value={customerData.stock}
+                    onChange={handleInputChange}
+                    disabled={!customerData.brand}
+                    className={`text-gray-800 w-full h-10 border border-gray-300 rounded-lg px-3 focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-200 transition-all duration-200 bg-white ${
+                      !customerData.brand ? 'opacity-50 cursor-not-allowed' : ''
+                    }`}
+                  >
+                    <option value="">Select Stock Item</option>
+                    {variants
+                      .filter(v => 
+                        v.productName === customerData.brand || 
+                        v.product?.name === customerData.brand
+                      )
+                      .map((variant) => (
+                        <option key={variant._id} value={variant.variantName}>
+                          {variant.variantName} - ₹{variant.sellingPrice} (Stock: {variant.quantity})
+                        </option>
+                      ))
+                    }
+                  </select>
+                </div>
+              )}
+
+              {/* Sales: Model Item Dropdown */}
+              {shopType === 'sales' && (
+                <div className="space-y-1">
+                  <label className="block text-xs font-semibold text-gray-700 mb-1">
+                    📱 Model Item *
+                  </label>
+                  <select
+                    name="model"
+                    value={customerData.model}
+                    onChange={(e) => setCustomerData(prev => ({...prev, model: e.target.value, imei: ''}))}
+                    disabled={!customerData.brand}
+                    className={`text-gray-800 w-full h-10 border border-gray-300 rounded-lg px-3 focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-200 transition-all duration-200 bg-white ${
+                      !customerData.brand ? 'opacity-50 cursor-not-allowed' : ''
+                    }`}
+                  >
+                    <option value="">Select Model Item</option>
+                    {variants
+                      .filter(v => 
+                        (v.productName === customerData.brand || 
+                         v.product?.name === customerData.brand) &&
+                        v.shopType === 'sales'
+                      )
+                      .map((variant) => (
+                        <option key={variant._id} value={variant.variantName}>
+                          {variant.variantName} 
+                        </option>
+                      ))
+                    }
+                  </select>
+                </div>
+              )}
+
+
 
               {/* Service: Password Field */}
               {shopType === 'service' && (
@@ -4476,55 +4536,7 @@ return (
           </div>
         </div>
 
-        {/* Brand Dropdown */}
         <div className="space-y-1">
-          <label className="block text-xs font-semibold text-gray-700 mb-1">
-            🏷️ Brand
-          </label>
-          <select
-            value={multiBrandData.brand}
-            onChange={(e) => setMultiBrandData(prev => ({...prev, brand: e.target.value, model: '', imei: ''}))}
-            className="text-gray-800 w-full h-10 border border-gray-300 rounded-lg px-3 focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-200 transition-all duration-200 bg-white"
-          >
-            <option value="">Select Brand</option>
-            {products.map((product) => (
-              <option key={product._id} value={product.name}>
-                {product.name}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        {/* Model Item Dropdown */}
-        <div className="space-y-1">
-          <label className="block text-xs font-semibold text-gray-700 mb-1">
-            📱 Model Item
-          </label>
-          <select
-            value={multiBrandData.model}
-            onChange={(e) => setMultiBrandData(prev => ({...prev, model: e.target.value, imei: ''}))}
-            disabled={!multiBrandData.brand}
-            className={`text-gray-800 w-full h-10 border border-gray-300 rounded-lg px-3 focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-200 transition-all duration-200 bg-white ${
-              !multiBrandData.brand ? 'opacity-50 cursor-not-allowed' : ''
-            }`}
-          >
-            <option value="">Select Model Item</option>
-            {variants
-              .filter(v => 
-                (v.productName === multiBrandData.brand || 
-                 v.product?.name === multiBrandData.brand) &&
-                v.shopType === 'sales'
-              )
-              .map((variant) => (
-                <option key={variant._id} value={variant.variantName}>
-                  {variant.variantName} 
-                </option>
-              ))
-            }
-          </select>
-        </div>
-
-<div className="space-y-1">
   <label className="block text-xs font-semibold text-gray-700 mb-1">
     📱 IMEI Number
   </label>
@@ -4575,11 +4587,6 @@ return (
       placeholder="Type IMEI or click to select from list"
       className="text-gray-800 w-full h-10 border border-gray-300 rounded-lg px-3 pr-10 focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-200 transition-all duration-200"
     />
-    
-    {/* Dropdown arrow indicator */}
-    <div className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none">
-      ▼
-    </div>
     
     {/* Dropdown List */}
     {showMultiBrandImeiDropdown && (
@@ -4674,6 +4681,56 @@ return (
     ) : null;
   })()}
 </div>
+
+        {/* Brand Dropdown */}
+        <div className="space-y-1">
+          <label className="block text-xs font-semibold text-gray-700 mb-1">
+            🏷️ Brand
+          </label>
+          <select
+            value={multiBrandData.brand}
+            onChange={(e) => setMultiBrandData(prev => ({...prev, brand: e.target.value, model: '', imei: ''}))}
+            className="text-gray-800 w-full h-10 border border-gray-300 rounded-lg px-3 focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-200 transition-all duration-200 bg-white"
+          >
+            <option value="">Select Brand</option>
+            {products.map((product) => (
+              <option key={product._id} value={product.name}>
+                {product.name}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {/* Model Item Dropdown */}
+        <div className="space-y-1">
+          <label className="block text-xs font-semibold text-gray-700 mb-1">
+            📱 Model Item
+          </label>
+          <select
+            value={multiBrandData.model}
+            onChange={(e) => setMultiBrandData(prev => ({...prev, model: e.target.value, imei: ''}))}
+            disabled={!multiBrandData.brand}
+            className={`text-gray-800 w-full h-10 border border-gray-300 rounded-lg px-3 focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-200 transition-all duration-200 bg-white ${
+              !multiBrandData.brand ? 'opacity-50 cursor-not-allowed' : ''
+            }`}
+          >
+            <option value="">Select Model Item</option>
+            {variants
+              .filter(v => 
+                (v.productName === multiBrandData.brand || 
+                 v.product?.name === multiBrandData.brand) &&
+                v.shopType === 'sales'
+              )
+              .map((variant) => (
+                <option key={variant._id} value={variant.variantName}>
+                  {variant.variantName} 
+                </option>
+              ))
+            }
+          </select>
+        </div>
+
+
 
         {/* Cashier Dropdown */}
         <div className="space-y-1">

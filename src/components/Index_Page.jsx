@@ -1,4 +1,4 @@
-// components/Index_Page.jsx - Updated with User Info
+// components/Index_Page.jsx - Updated with User Info and Session Management
 import React, { useState, useEffect } from 'react';
 
 export const Index_Page = ({ user, onLogout }) => {
@@ -13,6 +13,7 @@ export const Index_Page = ({ user, onLogout }) => {
   });
   const [resetLoading, setResetLoading] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const [lastLogin, setLastLogin] = useState('');
 
   // ✅ DYNAMIC API BASE DETECTION
   const getApiBase = () => {
@@ -27,6 +28,15 @@ export const Index_Page = ({ user, onLogout }) => {
   };
 
   const API_BASE = getApiBase();
+
+  // ✅ GET LAST LOGIN TIME
+  useEffect(() => {
+    const savedLastLogin = localStorage.getItem('lastLogin');
+    if (savedLastLogin) {
+      const loginDate = new Date(savedLastLogin);
+      setLastLogin(loginDate.toLocaleString());
+    }
+  }, []);
 
   // Fetch WhatsApp status
   const fetchWhatsAppStatus = async () => {
@@ -187,6 +197,43 @@ export const Index_Page = ({ user, onLogout }) => {
     );
   };
 
+  // ✅ User Dropdown Menu with session info
+  const renderUserMenu = () => (
+    <div className="absolute right-0 top-12 w-64 bg-white border border-orange-300 rounded-lg shadow-lg z-50">
+      <div className="p-3 border-b border-orange-200">
+        <div className="flex items-center space-x-2">
+          <div className="w-10 h-10 bg-orange-500 rounded-full flex items-center justify-center">
+            <span className="text-white text-sm font-bold">
+              {user?.initial || 'U'}
+            </span>
+          </div>
+          <div className="flex-1">
+            <p className="text-sm font-semibold text-gray-800">{user?.username}</p>
+            <p className="text-xs text-gray-600">{user?.email}</p>
+            <p className="text-xs text-orange-600">{user?.role}</p>
+            {lastLogin && (
+              <p className="text-xs text-gray-500 mt-1">
+                Last login: {lastLogin}
+              </p>
+            )}
+          </div>
+        </div>
+      </div>
+      
+      <div className="p-2 space-y-1">
+        <div className="px-3 py-2 text-xs text-gray-500 bg-gray-50 rounded">
+          💡 You will stay logged in for 30 days
+        </div>
+        <button
+          onClick={onLogout}
+          className="w-full text-center px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded transition-colors"
+        >
+          Logout
+        </button>
+      </div>
+    </div>
+  );
+
   return (
     <div className="bg-white flex flex-col">
       <header className="bg-orange-600 text-white px-3 py-2 sm:px-4 sm:py-3 flex items-center justify-between shadow-md">
@@ -197,10 +244,16 @@ export const Index_Page = ({ user, onLogout }) => {
           {renderStatusIndicator()}
         </div>
 
-        {/* Center - Title */}
-        <h1 className="text-md sm:text-lg font-bold text-center tracking-tight font-serif flex-1 text-center">
-          BAABA MOBILE WORLD
-        </h1>
+        {/* Center - Title with Trial Period */}
+        <div className="flex-1 text-center">
+          <h1 className="text-md sm:text-lg font-bold tracking-tight font-serif">
+            BAABA MOBILE WORLD
+          </h1>
+          {/* ✅ TRIAL PERIOD MESSAGE IN HEADER */}
+          <div className="bg-yellow-500 text-white text-xs py-1 px-2 rounded-full mt-1 inline-block animate-pulse">
+            ⏰ TRIAL PERIOD : 2 DAYS LEFT
+          </div>
+        </div>
 
         {/* Right - User Menu */}
         <div className="mr-7 user-menu-container relative">
@@ -216,36 +269,11 @@ export const Index_Page = ({ user, onLogout }) => {
             <span className="text-xs font-medium">{user?.username}</span>
           </button>
 
-          {/* User Dropdown Menu */}
-          {showUserMenu && (
-            <div className="absolute right-0 top-12 w-48 bg-white border border-orange-300 rounded-lg shadow-lg z-50">
-              <div className="p-3 border-b border-orange-200">
-                <div className="flex items-center space-x-2">
-                  <div className="w-8 h-8 bg-orange-500 rounded-full flex items-center justify-center">
-                    <span className="text-white text-sm font-bold">
-                      {user?.initial}
-                    </span>
-                  </div>
-                  <div>
-                    <p className="text-sm font-semibold text-gray-800">{user?.username}</p>
-                    <p className="text-xs text-gray-600">{user?.email}</p>
-                    <p className="text-xs text-orange-600">{user?.role}</p>
-                  </div>
-                </div>
-              </div>
-              
-              <div className="p-2">
-                <button
-                  onClick={onLogout}
-                  className="w-full text-center px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded transition-colors"
-                >
-                  Logout
-                </button>
-              </div>
-            </div>
-          )}
+          {showUserMenu && renderUserMenu()}
         </div>
       </header>
     </div>
   );
 };
+
+export default Index_Page;

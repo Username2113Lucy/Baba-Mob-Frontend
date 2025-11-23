@@ -21,6 +21,32 @@ const Login = ({ onLogin }) => {
   const maxAttempts = 3;
   const lockoutTime = 300000; // 5 minutes
 
+  // ✅ CHECK FOR EXISTING SESSION ON COMPONENT MOUNT
+  useEffect(() => {
+    const checkExistingSession = () => {
+      const savedSession = localStorage.getItem('userSession');
+      const sessionExpiry = localStorage.getItem('sessionExpiry');
+      
+      if (savedSession && sessionExpiry) {
+        const now = new Date().getTime();
+        if (now < parseInt(sessionExpiry)) {
+          // Session is still valid
+          const userData = JSON.parse(savedSession);
+          console.log('🔄 Auto-login with existing session');
+          onLogin(userData);
+          navigate('/');
+        } else {
+          // Session expired
+          localStorage.removeItem('userSession');
+          localStorage.removeItem('sessionExpiry');
+          console.log('❌ Session expired');
+        }
+      }
+    };
+
+    checkExistingSession();
+  }, [onLogin, navigate]);
+
   // Format time as mm:ss
   const formatTime = (seconds) => {
     const minutes = Math.floor(seconds / 60);
@@ -101,13 +127,31 @@ const Login = ({ onLogin }) => {
       setTimeLeft(0);
       
       try {
-        // Call the onLogin prop with user data
-        onLogin({ 
+        const userData = { 
           email: matchedUser.email,
           username: matchedUser.username, 
           role: matchedUser.role,
-          initial: matchedUser.username.charAt(0).toUpperCase()
-        });
+          initial: matchedUser.username.charAt(0).toUpperCase(),
+          loginTime: new Date().toISOString()
+        };
+        
+        // ✅ SAVE SESSION DATA FOR PERSISTENT LOGIN
+        const sessionData = {
+          ...userData,
+          sessionId: 'session_' + Date.now()
+        };
+        
+        // Save session to localStorage with 30-day expiry
+        const expiryTime = new Date().getTime() + (30 * 24 * 60 * 60 * 1000); // 30 days
+        
+        localStorage.setItem('userSession', JSON.stringify(sessionData));
+        localStorage.setItem('sessionExpiry', expiryTime.toString());
+        localStorage.setItem('lastLogin', new Date().toISOString());
+        
+        console.log('✅ Session saved for persistent login');
+        
+        // Call the onLogin prop with user data
+        onLogin(sessionData);
         
         // Clear login attempt data
         localStorage.removeItem('loginAttempts');
@@ -158,8 +202,11 @@ const Login = ({ onLogin }) => {
     <div className="min-h-screen min-w-screen bg-gradient-to-br from-orange-500 to-red-600 flex items-center justify-center p-4">
       {/* Main Container - Centered properly */}
       <div className="w-full max-w-md mx-auto">
+        
+
+
         {/* Login Form Card */}
-        <div className="bg-white rounded-2xl shadow-2xl overflow-hidden border-2 border-orange-500">
+        <div className="bg-white rounded-2xl shadow-2xl overflow-hidden border-2 border-orange-500 rounded">
           
           {/* Header Section with Branding */}
           <div className="bg-orange-500 py-6 px-6 text-center">
