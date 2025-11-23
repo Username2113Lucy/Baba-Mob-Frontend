@@ -1078,14 +1078,14 @@ const generateInvoiceNumber = () => {
   let nextNumber;
   
   if (shopType === 'sales') {
-    // For sales: if last bill was B706, next should be B1001
-    if (latestInvoice.includes('B706')) {
-      nextNumber = 1001;
+    // For sales: if condition matches, start from the given number (1001)
+    if (latestInvoice.includes('B2526-001')) {
+      nextNumber = 1;
     } else {
       nextNumber = latestNumber + 1;
     }
   } else {
-    // For service: if last bill was SV705, next should be SV1001
+    // For service: if condition matches, start from the given number (1001)
     if (latestInvoice.includes('SV705')) {
       nextNumber = 1001;
     } else {
@@ -1095,7 +1095,7 @@ const generateInvoiceNumber = () => {
   
   // ✅ FIXED: Reconstruct the full invoice number with prefix and year
   const nextInvoice = shopType === 'sales' 
-    ? `B25-26-${nextNumber.toString().padStart(3, '0')}`
+    ? `B26-27-${nextNumber.toString().padStart(3, '0')}`
     : `SV25-26-${nextNumber.toString().padStart(3, '0')}`;
   
   console.log('🧾 Invoice Generation Result:', {
