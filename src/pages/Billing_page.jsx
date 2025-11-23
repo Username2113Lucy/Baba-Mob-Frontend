@@ -1023,7 +1023,7 @@ const fetchAllCustomers = async (filters = {}) => {
     }
   };
 
-// ✅ UPDATED: Invoice number generation with custom jump condition
+// ✅ FIXED: Invoice number generation with proper parsing
 const generateInvoiceNumber = () => {
   const prefix = shopType === 'sales' ? 'B' : 'SV';
   
@@ -1045,9 +1045,23 @@ const generateInvoiceNumber = () => {
   shopCustomers.forEach(customer => {
     if (!customer.invoiceNumber) return;
     
-    // Remove prefix and convert to number
-    const numberStr = customer.invoiceNumber.replace(prefix, '');
+    console.log('🔍 Processing invoice:', customer.invoiceNumber);
+    
+    // ✅ FIXED: Extract only the sequential number part (after last dash)
+    const parts = customer.invoiceNumber.split('-');
+    const sequentialPart = parts[parts.length - 1]; // Get the last part "001"
+    
+    // Remove any non-numeric characters from the sequential part
+    const numberStr = sequentialPart.replace(/\D/g, '');
     const currentNumber = parseInt(numberStr) || 0;
+    
+    console.log('📊 Parsed:', {
+      invoice: customer.invoiceNumber,
+      parts: parts,
+      sequentialPart: sequentialPart,
+      numberStr: numberStr,
+      currentNumber: currentNumber
+    });
     
     if (currentNumber > latestNumber) {
       latestNumber = currentNumber;
@@ -1055,34 +1069,44 @@ const generateInvoiceNumber = () => {
     }
   });
   
+  console.log('📈 Latest found:', {
+    latestInvoice,
+    latestNumber
+  });
+  
   // ✅ CUSTOM JUMP CONDITION
   let nextNumber;
   
   if (shopType === 'sales') {
-    // For sales: if last bill was B003, next should be B706
-    if (latestInvoice === 'B706') {
+    // For sales: if last bill was B706, next should be B1001
+    if (latestInvoice.includes('B706')) {
       nextNumber = 1001;
     } else {
       nextNumber = latestNumber + 1;
     }
   } else {
-    // For service: if last bill was SV007, next should be SV705
-    if (latestInvoice === 'SV705') {
+    // For service: if last bill was SV705, next should be SV1001
+    if (latestInvoice.includes('SV705')) {
       nextNumber = 1001;
     } else {
       nextNumber = latestNumber + 1;
     }
   }
   
-  console.log('🧾 Invoice Generation:', {
+  // ✅ FIXED: Reconstruct the full invoice number with prefix and year
+  const nextInvoice = shopType === 'sales' 
+    ? `B25-26-${nextNumber.toString().padStart(3, '0')}`
+    : `SV25-26-${nextNumber.toString().padStart(3, '0')}`;
+  
+  console.log('🧾 Invoice Generation Result:', {
     shopType,
     latestInvoice,
     latestNumber,
     nextNumber,
-    nextInvoice: `${prefix}${nextNumber.toString().padStart(3, '0')}`
+    nextInvoice
   });
   
-  return `${prefix}${nextNumber.toString().padStart(3, '0')}`;
+  return nextInvoice;
 };
 
   // Handle input changes
