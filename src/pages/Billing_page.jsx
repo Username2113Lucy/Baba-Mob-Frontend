@@ -225,6 +225,26 @@ const [dealerPaymentForm, setDealerPaymentForm] = useState({
 
 });
 
+// Add this with your other state variables
+const [stockPassword, setStockPassword] = useState('');
+const STOCK_PASSWORD = 'SaveStock@789';
+
+// Add with your other state variables
+const [dealersPassword, setDealersPassword] = useState('');
+const [isDealersUnlocked, setIsDealersUnlocked] = useState(false);
+const [dealersPasswordError, setDealersPasswordError] = useState('');
+
+// Add with your other constants at the top of the file
+const DEALERS_PASSWORD = 'Dealers@123'; // Change this to your desired password
+
+// Add this with your other useEffect hooks
+useEffect(() => {
+  // Auto-lock dealers when switching tabs
+  if (activeTab !== 'dealers') {
+    setIsDealersUnlocked(false);
+    setDealersPassword('');
+  }
+}, [activeTab]);
 
   // 🧾 Cashier State (Separate for Service and Sales)
   const [serviceCashiers, setServiceCashiers] = useState([]);
@@ -1178,29 +1198,17 @@ const handleAddCustomer = async () => {
 
     const result = await response.json();
     
-    if (!response.ok) {
+       if (!response.ok) {
       throw new Error(result.message || `HTTP error! status: ${response.status}`);
     }
 
     if (result.success) {
       const savedCustomer = result.data;
       
-      // ✅ For sales: Mark stock item as sold
-      if (shopType === 'sales' && customerData.imei) {
-        try {
-          const stockItem = stockItems.find(item => item.imei === customerData.imei);
-          if (stockItem) {
-            await fetch(`${STOCK_API}/${stockItem._id}/sold`, {
-              method: 'PUT',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ customerId: savedCustomer._id })
-            });
-            console.log('✅ Stock item marked as sold');
-          }
-        } catch (stockError) {
-          console.error('⚠️ Error updating stock item:', stockError);
-          // Continue even if stock update fails
-        }
+      // ✅ ADD THIS: Refresh stock data after creating service customer
+      if (shopType === 'service') {
+        await fetchStockData(); // This will update the stock quantities in frontend
+        console.log('🔄 Stock data refreshed after customer creation');
       }
 
       // Update local state
@@ -1213,7 +1221,7 @@ const handleAddCustomer = async () => {
       // Reset form
       setCustomerData({ 
         name: '', phone: '', address: '', issue: '', cost: '', brand: '', stock: '', model: '',
-        password: '', paymentMode: 'cash', financeCompany: '', warrantyDays: '', imei: '', cashier: '', // ✅ Set default paymentMode
+        password: '', paymentMode: 'cash', financeCompany: '', warrantyDays: '', imei: '', cashier: '',
         gstNumber: ''
       });
       
@@ -1221,9 +1229,6 @@ const handleAddCustomer = async () => {
       
       // Refresh data
       await fetchAllCustomers();
-      if (shopType === 'sales') {
-        await fetchStockData();
-      }
       
     } else {
       throw new Error(result.message || 'Failed to create customer');
@@ -1233,6 +1238,7 @@ const handleAddCustomer = async () => {
     alert('Error creating customer: ' + error.message);
   }
 };
+
 
 // Handle status change - FIXED VERSION with proper payment handling
 const handleStatusChange = async (customerId, newStatus) => {
@@ -1322,7 +1328,7 @@ const handleStatusChange = async (customerId, newStatus) => {
       setCustomers(updatedCustomers);
       setAllCustomers(updatedAllCustomers);
       
-      // Refresh stock data to show updated quantities
+      // ✅ ADD THIS: Refresh stock data for service status changes
       if (customer.shopType === 'service') {
         await fetchStockData();
         console.log('🔄 Stock data refreshed after status change');
@@ -1335,9 +1341,6 @@ const handleStatusChange = async (customerId, newStatus) => {
     alert('Error updating status: ' + error.message);
   }
 };
-
-
-
 
   // Handle actions (Print/Download) - Alternative approach
   const handleAction = async (customerId, action) => {
@@ -1602,8 +1605,8 @@ const handlePaidAmountSave = async (customerId, value) => {
     
     console.log('💰 Sending paid amount to backend:', paidAmount);
 
-    // ✅ FIXED: Use the correct endpoint
-    const response = await fetch(`${CUSTOMER_API}/customers/${customerId}`, {
+    // ✅ FIXED: Use the correct endpoint (remove the duplicate /customers)
+    const response = await fetch(`${CUSTOMER_API}/${customerId}`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
@@ -6230,6 +6233,40 @@ if (shopType === 'sales') {
               📦 Add Stock Items
             </h2>
           </div>
+
+{/* Password Protection Section - Single Line */}
+<div className="bg-white rounded-lg p-4 border border-orange-200 mb-4">
+  <div className="flex items-center gap-4">
+    <label className="text-sm font-semibold text-gray-700 whitespace-nowrap">
+      🔒 Stock Save Password *
+    </label>
+    <div className="flex-1">
+      <input
+        type="password"
+        value={stockPassword}
+        onChange={(e) => setStockPassword(e.target.value)}
+        placeholder="Enter password to save stock"
+        className={`w-70 text-black border-2 rounded-lg px-3 py-2 focus:outline-none transition-colors duration-300 ${
+          stockPassword === '' 
+            ? 'border-gray-300' 
+            : stockPassword === STOCK_PASSWORD  
+              ? 'border-green-500 bg-green-50' 
+              : 'border-red-500 bg-red-50'
+        }`}
+      />
+    </div>
+    <div className="text-sm whitespace-nowrap">
+      {stockPassword === '' ? (
+        <span className="text-gray-500">⚠️ Enter password</span>
+      ) : stockPassword ===  STOCK_PASSWORD ? (
+        <span className="text-green-600">✅ Correct</span>
+      ) : (
+        <span className="text-red-600">❌ Incorrect</span>
+      )}
+    </div>
+  </div>
+</div>
+
           <button
             onClick={addStockRow}
             className="bg-purple-500 text-white px-4 py-2 rounded-lg hover:bg-purple-600 transition-colors font-semibold flex items-center gap-2"
@@ -6511,13 +6548,32 @@ if (shopType === 'sales') {
 
         {/* Save Stock Button */}
         <div className="flex justify-end mt-6">
-          <button
-            onClick={handleSaveStockItems}
-            className="bg-green-500 text-white px-6 py-2 rounded-lg hover:bg-green-600 transition-colors font-semibold"
-          >
-            💾 Save All Stock Items
-          </button>
-        </div>
+  <button
+    onClick={async () => {
+      if (stockPassword !== STOCK_PASSWORD) {
+        alert('❌ Please enter correct password to save stock');
+        return;
+      }
+      
+      try {
+        await handleSaveStockItems();
+        // Clear password after successful save
+        setStockPassword('');
+      } catch (error) {
+        // Keep password if save failed
+        console.error('Save failed:', error);
+      }
+    }}
+    disabled={stockPassword !== STOCK_PASSWORD}
+    className={`px-6 py-2 rounded-lg transition-colors font-semibold ${
+      stockPassword === STOCK_PASSWORD  
+        ? 'bg-green-500 text-white hover:bg-green-600 cursor-pointer' 
+        : 'bg-gray-400 text-gray-200 cursor-not-allowed'
+    }`}
+  >
+    {stockPassword === STOCK_PASSWORD  ? '💾 Save All Stock Items' : '🔒 Enter Password to Save'}
+  </button>
+          </div>
       </div>
     )}
 
@@ -6772,546 +6828,627 @@ Thank you for shopping with us! 🎉`
 
 {activeTab === 'dealers' && shopType === 'sales' && (
   <div className="space-y-6">
-    {/* Add/Edit Dealer Form */}
-    <div className="bg-white rounded-lg p-6 shadow-md border border-orange-100">
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center">
-          <div className="w-2 h-6 bg-orange-500 rounded-full mr-2"></div>
-          <h2 className="text-xl font-bold text-gray-800">
-            {editingDealer ? '✏️ Edit Dealer' : '➕ Add New Dealer'}
-          </h2>
-        </div>
-        {editingDealer && (
-          <button
-            onClick={() => {
-              setDealerForm({
-                name: '',
-                contact: '',
-                address: '',
-                gstNumber: '',
-              });
-              setEditingDealer(null);
-            }}
-            className="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600 transition-colors font-semibold"
-          >
-            Cancel Edit
-          </button>
-        )}
-      </div>
-
-      <form onSubmit={saveDealer}>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">
-              🏢 Supplier Name *
-            </label>
-            <input
-              type="text"
-              required
-              value={dealerForm.name}
-              onChange={(e) => setDealerForm(prev => ({...prev, name: e.target.value}))}
-              placeholder="e.g., Mobile Distributors Inc, Phone World ..."
-              className="text-black w-full border-2 border-gray-300 rounded-lg px-3 py-3 focus:outline-none focus:border-orange-500 font-semibold"
-            />
+    {/* LOCK SCREEN - Show when locked */}
+    {!isDealersUnlocked && (
+      <div className="bg-gradient-to-br mt-20 from-gray-900 to-black border-2 border-gray-700 rounded-2xl shadow-2xl p-8 w-full max-w-md mx-auto mt-8">
+        {/* Lock Icon */}
+        <div className="text-center mb-6">
+          <div className="w-20 h-20 bg-gradient-to-r from-orange-500 to-amber-500 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
+            <span className="text-3xl text-white">🔒</span>
           </div>
+          <h2 className="text-2xl font-bold text-white mb-2">Supplier Access</h2>
+          <p className="text-gray-400 text-sm">Enter password to manage suppliers</p>
+        </div>
 
+        {/* Password Input */}
+        <div className="space-y-4">
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">
-              📞 Contact Number *
+            <label className="block text-sm font-semibold text-gray-300 mb-2">
+              🔑 Access Password
             </label>
             <input
-              type="text"
-              required
-              value={dealerForm.contact}
+              type="password"
+              value={dealersPassword}
               onChange={(e) => {
-                const numbersOnly = e.target.value.replace(/\D/g, '');
-                if (numbersOnly.length <= 10) {
-                  setDealerForm(prev => ({...prev, contact: numbersOnly}));
+                setDealersPassword(e.target.value);
+                setDealersPasswordError('');
+              }}
+              onKeyPress={(e) => {
+                if (e.key === 'Enter') {
+                  if (dealersPassword === DEALERS_PASSWORD) {
+                    setIsDealersUnlocked(true);
+                    setDealersPassword('');
+                  } else {
+                    setDealersPasswordError('❌ Incorrect password');
+                  }
                 }
               }}
-              placeholder="Enter 10-digit phone number"
-              className="text-black w-full border-2 border-gray-300 rounded-lg px-3 py-3 focus:outline-none focus:border-orange-500 font-semibold"
-              maxLength={10}
+              placeholder="Enter access password"
+              className="w-full bg-gray-800 border-2 border-gray-600 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-orange-500 transition-colors duration-300 text-center font-semibold"
+              autoFocus
             />
           </div>
 
-          <div className="md:col-span-2">
-            <label className="block text-sm font-semibold text-gray-700 mb-2">
-              📍 Address *
-            </label>
-            <textarea
-              required
-              value={dealerForm.address}
-              onChange={(e) => setDealerForm(prev => ({...prev, address: e.target.value}))}
-              placeholder="Enter complete dealer address with city, state, and pincode"
-              rows={2}
-              className="text-black w-full border-2 border-gray-300 rounded-lg px-3 py-3 focus:outline-none focus:border-orange-500 font-semibold resize-vertical"
-            />
-          </div>
+          {/* Error Message */}
+          {dealersPasswordError && (
+            <div className="bg-red-900 bg-opacity-50 border border-red-700 rounded-lg p-3 text-center">
+              <span className="text-red-300 text-sm">{dealersPasswordError}</span>
+            </div>
+          )}
 
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">
-              🏷️ GST Number
-            </label>
-            <input
-              type="text"
-              value={dealerForm.gstNumber}
-              onChange={(e) => setDealerForm(prev => ({...prev, gstNumber: e.target.value.toUpperCase()}))}
-              placeholder="e.g., 07AABCU9603R1ZM"
-              className="text-black w-full border-2 border-gray-300 rounded-lg px-3 py-3 focus:outline-none focus:border-orange-500 font-semibold uppercase"
-            />
-          </div>
-        </div>
-        
-        <div className="flex justify-center">
+          {/* Unlock Button */}
           <button
-            type="submit"
-            className="bg-gradient-to-r from-orange-500 to-amber-500 text-white px-12 py-4 rounded-xl hover:from-orange-600 hover:to-amber-600 transition-all duration-300 font-bold text-lg shadow-lg hover:shadow-xl transform hover:scale-105 active:scale-95 border-2 border-orange-400"
+            onClick={() => {
+              if (dealersPassword === DEALERS_PASSWORD) {
+                setIsDealersUnlocked(true);
+                setDealersPassword('');
+              } else {
+                setDealersPasswordError('❌ Incorrect password');
+              }
+            }}
+            className="w-full bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-bold py-3 px-4 rounded-xl transition-all duration-300 transform hover:scale-105 active:scale-95 shadow-lg"
           >
-            <span className="flex items-center gap-3">
-              <span className="text-xl">💾</span>
-              {editingDealer ? 'Update Supplier' : 'Save Supplier'}
-            </span>
+            🚀 Unlock Supplier Portal
           </button>
-        </div>
-      </form>
-    </div>
 
-        {/* Dealer Payments Section */}
-<div className="bg-white rounded-lg p-6 shadow-md border border-green-100">
-  <div className="flex items-center mb-6">
-    <div className="w-2 h-6 bg-green-500 rounded-full mr-2"></div>
-    <h2 className="text-xl font-bold text-gray-800">💳 Add Supplier Payment</h2>
-  </div>
-
-  <form onSubmit={addDealerPayment}>
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-      <div>
-        <label className="block text-sm font-semibold text-gray-700 mb-1">Supplier *</label>
-        <select
-          value={dealerPaymentForm.dealer}
-          onChange={(e) => handleDealerSelectForPayment(e.target.value)}
-          className="text-black w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:border-green-500"
-          required
-        >
-          <option value="">Select Supplier</option>
-          {dealers.map(dealer => (
-            <option key={dealer._id} value={dealer._id}>{dealer.name}</option>
-          ))}
-        </select>
-      </div>
-
-      <div>
-        <label className="block text-sm font-semibold text-gray-700 mb-1">Total Amount (₹) *</label>
-        <input
-          type="number"
-          value={dealerPaymentForm.totalAmount}
-          onChange={(e) => setDealerPaymentForm(prev => ({...prev, totalAmount: e.target.value}))}
-          placeholder="0.00"
-          min="0"
-          step="0.01"
-          className="text-black w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:border-green-500 bg-gray-50"
-          required
-          readOnly
-        />
-        <p className="text-xs text-gray-500 mt-1">Calculated from stock items</p>
-      </div>
-
-      <div>
-        <label className="block text-sm font-semibold text-gray-700 mb-1">Payment Amount (₹) *</label>
-        <input
-          type="number"
-          value={dealerPaymentForm.amount}
-          onChange={(e) => setDealerPaymentForm(prev => ({...prev, amount: e.target.value}))}
-          placeholder="0.00"
-          min="0"
-          step="0.01"
-          className="text-black w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:border-green-500"
-          required
-        />
-      </div>
-
-<div>
-  <label className="block text-sm font-semibold text-gray-700 mb-1">Date</label>
-  <input
-    type="text"
-    value={dealerPaymentForm.date}
-    onChange={(e) => {
-      let value = e.target.value;
-      // Remove any non-digit characters except slash
-      value = value.replace(/[^\d/]/g, '');
-      
-      // Auto-add slashes
-      if (value.length === 2 && !value.includes('/')) {
-        value = value + '/';
-      } else if (value.length === 5 && value.split('/').length === 2) {
-        value = value + '/';
-      }
-      
-      // Limit to 10 characters (DD/MM/YYYY)
-      if (value.length <= 10) {
-        setDealerPaymentForm(prev => ({...prev, date: value}));
-      }
-    }}
-    placeholder="DD/MM/YYYY"
-    className="text-black w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:border-green-500"
-  />
-</div>
-    </div>
-
-    {/* Balance Preview */}
-    {dealerPaymentForm.totalAmount && dealerPaymentForm.amount && (
-      <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-        <div className="flex justify-between items-center">
-          <span className="font-semibold text-blue-800">Balance after payment:</span>
-          <span className={`font-bold text-lg ${
-            (parseFloat(dealerPaymentForm.totalAmount) - parseFloat(dealerPaymentForm.amount)) > 0 
-              ? 'text-red-600' 
-              : 'text-green-600'
-          }`}>
-            ₹{(parseFloat(dealerPaymentForm.totalAmount) - parseFloat(dealerPaymentForm.amount)).toFixed(2)}
-          </span>
+          {/* Security Note */}
+          <div className="text-center pt-4 border-t border-gray-700">
+            <p className="text-xs text-gray-500">
+              🔐 Secure supplier management area
+            </p>
+          </div>
         </div>
       </div>
     )}
 
-    <div className="flex justify-end">
-      <button
-        type="submit"
-        className="bg-green-500 text-white px-6 py-2 rounded-lg hover:bg-green-600 transition-colors font-semibold"
-      >
-        💰 Add Payment
-      </button>
-    </div>
-  </form>
-</div>
-
- {/* Enhanced Dealers List with Expandable Stock */}
-    <div className="bg-white rounded-lg shadow-md overflow-hidden border border-orange-100">
-      <div className="p-6">
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center">
-            <div className="w-2 h-6 bg-orange-500 rounded-full mr-2"></div>
-            <h2 className="text-xl font-bold text-gray-800">
-              🤝 Suppliers List
-            </h2>
-          </div>
-          <div className="text-sm text-gray-500 bg-orange-50 px-3 py-1 rounded-full">
-            Total: {dealers.length} Suppliers
-          </div>
+    {/* DEALERS CONTENT - Show when unlocked */}
+    {isDealersUnlocked && (
+      <>
+        {/* Lock Button */}
+        <div className="flex justify-end">
+          <button
+            onClick={() => {
+              setIsDealersUnlocked(false);
+              setDealersPassword('');
+            }}
+            className="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors font-semibold flex items-center gap-2 shadow-lg"
+          >
+            🔒 Lock Suppliers
+          </button>
         </div>
-        
-        {loading ? (
-          <div className="text-center py-8">
-            <div className="text-xl">⏳</div>
-            <p className="text-gray-600">Loading Suppliers...</p>
-          </div>
-        ) : dealers.length === 0 ? (
-          <div className="text-center py-8 text-gray-500">
-            <div className="text-4xl mb-2">🏢</div>
-            <p className="text-base font-semibold mb-1">No Suppliers found</p>
-            <p className="text-xs">Add your first Supplier to get started</p>
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full border-collapse">
-              <thead>
-                <tr className="bg-gradient-to-r from-orange-500 to-amber-500">
-                  <th className="border border-orange-400 px-4 py-3 text-left font-bold text-white text-sm uppercase">Supplier Details</th>
-                  <th className="border border-orange-400 px-4 py-3 text-center font-bold text-white text-sm uppercase">Total Stock Value</th>
-                  <th className="border border-orange-400 px-4 py-3 text-center font-bold text-white text-sm uppercase">GST (18%)</th>
-                  <th className="border border-orange-400 px-4 py-3 text-center font-bold text-white text-sm uppercase">Total + GST</th>
-                  <th className="border border-orange-400 px-4 py-3 text-center font-bold text-white text-sm uppercase">Paid Amount</th>
-                  <th className="border border-orange-400 px-4 py-3 text-center font-bold text-white text-sm uppercase">Balance</th>
-                  <th className="border border-orange-400 px-4 py-3 text-center font-bold text-white text-sm uppercase">Details</th>
-                  <th className="border border-orange-400 px-4 py-3 text-center font-bold text-white text-sm uppercase w-40">🔔 Send Alert</th>
-                </tr>
-              </thead>
-              <tbody>
-                {dealers.slice().reverse().map((dealer, index) => {
-                  const balanceInfo = getDealerBalanceInfo(dealer);
-                  const isExpanded = expandedDealer === dealer._id;
-                  const dealerStockItems = stockItems.filter(item => item.dealer?._id === dealer._id);
-                  
-                  // ✅ FRONTEND GST CALCULATION
-                  const totalStockCost = dealerStockItems.reduce((sum, item) => sum + (item.cost || 0), 0);
-                  const gstAmount = totalStockCost * 0.18;
-                  const totalWithGST = totalStockCost + gstAmount;
-                  
-                  return (
-                    <>
-                      <tr 
-                        key={dealer._id} 
-                        className={`border-b border-gray-200 hover:bg-orange-50 transition-colors duration-200 ${
-                          index % 2 === 0 ? 'bg-white' : 'bg-gray-50'
-                        }`}
-                        onClick={(e) => {
-                          // ✅ ONLY expand if clicking on the row itself, not on buttons/inputs
-                          if (!e.target.closest('button') && !e.target.closest('input') && !e.target.closest('.no-expand')) {
-                            setExpandedDealer(isExpanded ? null : dealer._id);
-                          }
-                        }}
-                      >
-                        <td className="border border-gray-300 px-4 py-3">
-                          <div className="font-semibold text-gray-800 text-lg">{dealer.name}</div>
-                          <div className="text-xs text-gray-600 mt-1">
-                            <div>📞 {dealer.contact}</div>
-                            <div>🏷️ {dealer.gstNumber || 'No GST'}</div>
-                            <div className="mt-1 text-gray-500 max-w-md truncate">{dealer.address}</div>
-                          </div>
-                        </td>
-                        <td className="border border-gray-300 px-4 py-3 text-center">
-                          <div className="text-blue-600 font-bold text-sm">
-                            ₹{totalStockCost.toFixed(2)}
-                          </div>
-                        </td>
-                        <td className="border border-gray-300 px-4 py-3 text-center">
-                          <div className="text-purple-600 font-bold text-sm">
-                            ₹{gstAmount.toFixed(2)}
-                          </div>
-                        </td>
-                        <td className="border border-gray-300 px-4 py-3 text-center">
-                          <div className="text-green-600 font-bold text-lg">
-                            ₹{totalWithGST.toFixed(2)}
-                          </div>
-                        </td>
-                        <td className="border border-gray-300 px-4 py-3 text-center">
-                          <div className="text-green-600 font-bold text-lg">
-                            ₹{balanceInfo.totalPayments.toFixed(2)}
-                          </div>
-                        </td>
-                        <td className="border border-gray-300 px-4 py-3 text-center">
-                          <div className={`font-bold text-lg ${
-                            balanceInfo.balance > 0 ? 'text-red-600' : 
-                            balanceInfo.balance < 0 ? 'text-blue-600' : 'text-gray-600'
-                          }`}>
-                            ₹{Math.abs(balanceInfo.balance).toFixed(2)}
-                          </div>
-                          <div className="text-xs text-gray-500 mt-1">
-                            {balanceInfo.balance > 0 ? 'You Owe' : 
-                             balanceInfo.balance < 0 ? 'You Get' : 'Settled'}
-                          </div>
-                        </td>
-                        
-                        {/* ✅ FIXED: Details Button */}
-                        <td className="border border-gray-300 px-4 py-3 text-center">
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation(); // Prevent row expansion
-                              console.log('📊 Details clicked for:', dealer.name);
-                              setSelectedDealerForDetails(dealer);
-                              setShowPaymentDetails(true);
-                              fetchDealerPaymentDetails(dealer._id);
-                            }}
-                            className="bg-purple-500 text-white px-4 py-2 rounded-lg hover:bg-purple-600 transition-colors font-semibold"
-                          >
-                            📊 Details
-                          </button>
-                        </td>
 
-                        {/* Alert Section */}
-                        <td className="border border-gray-300 px-4 py-3 text-center text-black no-expand">
-                          <DealerAlertSection 
-                            dealer={dealer} 
-                            onAlertSet={handleAlertSet}
-                            onAlertReset={handleAlertReset}
-                          />
-                        </td>
-                      </tr>
-                      
-                      {/* ✅ EXPANDED STOCK TABLE - Shows when row is expanded */}
-                      {isExpanded && (
-                        <tr className="bg-blue-50">
-                          <td colSpan="8" className="border border-gray-300 px-4 py-4">
-                            <div className="mb-4">
-                              <h4 className="font-bold text-blue-800 text-lg mb-3">📦 Stock Items from {dealer.name}</h4>
-                              
-                              {dealerStockItems.length === 0 ? (
-                                <div className="text-center py-4 text-gray-500">
-                                  <div className="text-2xl mb-2">📭</div>
-                                  <p>No stock items found for this Supplier</p>
-                                </div>
-                              ) : (
-                                <div className="overflow-x-auto h-100">
-                                  <table className="w-full border-collapse">
-                                    <thead>
-                                      <tr className="bg-gradient-to-r from-blue-400 to-blue-500">
-                                        <th className="border border-blue-300 px-3 py-2 text-left font-bold text-white text-xs uppercase">IMEI</th>
-                                        <th className="border border-blue-300 px-3 py-2 text-left font-bold text-white text-xs uppercase">Brand</th>
-                                        <th className="border border-blue-300 px-3 py-2 text-left font-bold text-white text-xs uppercase">Model</th>
-                                        <th className="border border-blue-300 px-3 py-2 text-left font-bold text-white text-xs uppercase">HSN</th>
-                                        <th className="border border-blue-300 px-3 py-2 text-center font-bold text-white text-xs uppercase">Cost (₹)</th>
-                                        <th className="border border-blue-300 px-3 py-2 text-center font-bold text-white text-xs uppercase">GST (18%)</th>
-                                        <th className="border border-blue-300 px-3 py-2 text-center font-bold text-white text-xs uppercase">Total (₹)</th>
-                                        <th className="border border-blue-300 px-3 py-2 text-center font-bold text-white text-xs uppercase">Status</th>
-                                      </tr>
-                                    </thead>
-                                    <tbody>
-                                      {dealerStockItems.map((stockItem, stockIndex) => {
-                                        // ✅ INDIVIDUAL ITEM GST CALCULATION
-                                        const itemGST = (stockItem.cost || 0) * 0.18;
-                                        const itemTotal = (stockItem.cost || 0) + itemGST;
-                                        
-                                        return (
-                                          <tr 
-                                            key={stockItem._id} 
-                                            className={`border-b border-gray-200 hover:bg-blue-100 transition-colors duration-150 ${
-                                              stockIndex % 2 === 0 ? 'bg-white' : 'bg-blue-50'
-                                            }`}
-                                          >
-                                            <td className="border border-gray-300 px-3 py-2 font-mono text-blue-600 bg-blue-50 text-xs">
-                                              {stockItem.imei || 'N/A'}
-                                            </td>
-                                            <td className="border border-gray-200 px-3 py-2 whitespace-nowrap text-gray-800 font-medium text-sm">
-                                              {stockItem.product?.name || 'N/A'}
-                                            </td>
-                                            <td className="border border-gray-300 px-3 py-2 whitespace-nowrap text-gray-700 text-sm">
-                                              {stockItem.variant?.variantName || 'N/A'}
-                                            </td>
-                                            <td className="border border-gray-300 px-3 py-2 font-mono whitespace-nowrap text-gray-700 text-sm">
-                                              {stockItem.hsn || 'N/A'}
-                                            </td>
-                                            <td className="border border-gray-300 px-3 py-2 font-semibold whitespace-nowrap text-blue-600 text-sm text-center">
-                                              ₹{(stockItem.cost || 0).toFixed(2)}
-                                            </td>
-                                            <td className="border border-gray-300 px-3 py-2 font-semibold whitespace-nowrap text-purple-600 text-sm text-center">
-                                              ₹{itemGST.toFixed(2)}
-                                            </td>
-                                            <td className="border border-gray-300 px-3 py-2 font-semibold whitespace-nowrap text-green-600 text-base text-center">
-                                              ₹{itemTotal.toFixed(2)}
-                                            </td>
-                                            <td className="border border-gray-300 px-3 py-2 whitespace-nowrap text-center">
-                                              <span className={`inline-flex items-center justify-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                                                stockItem.status === 'sold' 
-                                                  ? 'bg-red-100 text-red-800 border border-red-200' 
-                                                  : 'bg-green-100 text-green-800 border border-green-200'
-                                              }`}>
-                                                {stockItem.status === 'sold' ? '🔴 Sold' : '📦 In Stock'}
-                                              </span>
-                                            </td>
-                                          </tr>
-                                        );
-                                      })}
-                                    </tbody>
-                                    <tfoot>
-                                      <tr className="bg-blue-100">
-                                        <td colSpan="4" className="border border-gray-300 px-3 py-2 text-right font-bold text-gray-800">
-                                          Totals:
-                                        </td>
-                                        <td className="border border-gray-300 px-3 py-2 text-center font-bold text-blue-700">
-                                          ₹{totalStockCost.toFixed(2)}
-                                        </td>
-                                        <td className="border border-gray-300 px-3 py-2 text-center font-bold text-purple-700">
-                                          ₹{gstAmount.toFixed(2)}
-                                        </td>
-                                        <td className="border border-gray-300 px-3 py-2 text-center font-bold text-green-700">
-                                          ₹{totalWithGST.toFixed(2)}
-                                        </td>
-                                        <td className="border border-gray-300 px-3 py-2 text-center">
-                                          <div className="text-xs text-gray-600">
-                                            {dealerStockItems.filter(item => item.status === 'in_stock').length} in stock
-                                          </div>
-                                        </td>
-                                      </tr>
-                                    </tfoot>
-                                  </table>
-                                </div>
-                              )}
-                            </div>
-                          </td>
-                        </tr>
-                      )}
-                    </>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
-    </div>
-
-    {/* ✅ PAYMENT DETAILS MODAL - Shows when Details button is clicked */}
-    {showPaymentDetails && selectedDealerForDetails && (
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-        <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-hidden">
-          <div className="p-6 border-b border-gray-200">
-            <div className="flex justify-between items-center">
-              <h3 className="text-xl font-bold text-gray-800">
-                Payment Details - {selectedDealerForDetails.name}
-              </h3>
+        {/* Add/Edit Dealer Form */}
+        <div className="bg-white rounded-lg p-6 shadow-md border border-orange-100">
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center">
+              <div className="w-2 h-6 bg-orange-500 rounded-full mr-2"></div>
+              <h2 className="text-xl font-bold text-gray-800">
+                {editingDealer ? '✏️ Edit Dealer' : '➕ Add New Dealer'}
+              </h2>
+            </div>
+            {editingDealer && (
               <button
                 onClick={() => {
-                  setShowPaymentDetails(false);
-                  setSelectedDealerForDetails(null);
-                  setDealerPaymentDetails([]);
+                  setDealerForm({
+                    name: '',
+                    contact: '',
+                    address: '',
+                    gstNumber: '',
+                  });
+                  setEditingDealer(null);
                 }}
-                className="text-gray-500 hover:text-gray-700 text-2xl"
+                className="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600 transition-colors font-semibold"
               >
-                ×
+                Cancel Edit
+              </button>
+            )}
+          </div>
+
+          <form onSubmit={saveDealer}>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  🏢 Supplier Name *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={dealerForm.name}
+                  onChange={(e) => setDealerForm(prev => ({...prev, name: e.target.value}))}
+                  placeholder="e.g., Mobile Distributors Inc, Phone World ..."
+                  className="text-black w-full border-2 border-gray-300 rounded-lg px-3 py-3 focus:outline-none focus:border-orange-500 font-semibold"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  📞 Contact Number *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={dealerForm.contact}
+                  onChange={(e) => {
+                    const numbersOnly = e.target.value.replace(/\D/g, '');
+                    if (numbersOnly.length <= 10) {
+                      setDealerForm(prev => ({...prev, contact: numbersOnly}));
+                    }
+                  }}
+                  placeholder="Enter 10-digit phone number"
+                  className="text-black w-full border-2 border-gray-300 rounded-lg px-3 py-3 focus:outline-none focus:border-orange-500 font-semibold"
+                  maxLength={10}
+                />
+              </div>
+
+              <div className="md:col-span-2">
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  📍 Address *
+                </label>
+                <textarea
+                  required
+                  value={dealerForm.address}
+                  onChange={(e) => setDealerForm(prev => ({...prev, address: e.target.value}))}
+                  placeholder="Enter complete dealer address with city, state, and pincode"
+                  rows={2}
+                  className="text-black w-full border-2 border-gray-300 rounded-lg px-3 py-3 focus:outline-none focus:border-orange-500 font-semibold resize-vertical"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  🏷️ GST Number
+                </label>
+                <input
+                  type="text"
+                  value={dealerForm.gstNumber}
+                  onChange={(e) => setDealerForm(prev => ({...prev, gstNumber: e.target.value.toUpperCase()}))}
+                  placeholder="e.g., 07AABCU9603R1ZM"
+                  className="text-black w-full border-2 border-gray-300 rounded-lg px-3 py-3 focus:outline-none focus:border-orange-500 font-semibold uppercase"
+                />
+              </div>
+            </div>
+            
+            <div className="flex justify-center">
+              <button
+                type="submit"
+                className="bg-gradient-to-r from-orange-500 to-amber-500 text-white px-12 py-4 rounded-xl hover:from-orange-600 hover:to-amber-600 transition-all duration-300 font-bold text-lg shadow-lg hover:shadow-xl transform hover:scale-105 active:scale-95 border-2 border-orange-400"
+              >
+                <span className="flex items-center gap-3">
+                  <span className="text-xl">💾</span>
+                  {editingDealer ? 'Update Supplier' : 'Save Supplier'}
+                </span>
               </button>
             </div>
+          </form>
+        </div>
+
+        {/* Dealer Payments Section */}
+        <div className="bg-white rounded-lg p-6 shadow-md border border-green-100">
+          <div className="flex items-center mb-6">
+            <div className="w-2 h-6 bg-green-500 rounded-full mr-2"></div>
+            <h2 className="text-xl font-bold text-gray-800">💳 Add Supplier Payment</h2>
           </div>
-          
-          <div className="p-6 overflow-y-auto max-h-[60vh]">
-            {dealerPaymentDetails.length === 0 ? (
+
+          <form onSubmit={addDealerPayment}>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-1">Supplier *</label>
+                <select
+                  value={dealerPaymentForm.dealer}
+                  onChange={(e) => handleDealerSelectForPayment(e.target.value)}
+                  className="text-black w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:border-green-500"
+                  required
+                >
+                  <option value="">Select Supplier</option>
+                  {dealers.map(dealer => (
+                    <option key={dealer._id} value={dealer._id}>{dealer.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-1">Total Amount (₹) *</label>
+                <input
+                  type="number"
+                  value={dealerPaymentForm.totalAmount}
+                  onChange={(e) => setDealerPaymentForm(prev => ({...prev, totalAmount: e.target.value}))}
+                  placeholder="0.00"
+                  min="0"
+                  step="0.01"
+                  className="text-black w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:border-green-500 bg-gray-50"
+                  required
+                  readOnly
+                />
+                <p className="text-xs text-gray-500 mt-1">Calculated from stock items</p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-1">Payment Amount (₹) *</label>
+                <input
+                  type="number"
+                  value={dealerPaymentForm.amount}
+                  onChange={(e) => setDealerPaymentForm(prev => ({...prev, amount: e.target.value}))}
+                  placeholder="0.00"
+                  min="0"
+                  step="0.01"
+                  className="text-black w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:border-green-500"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-1">Date</label>
+                <input
+                  type="text"
+                  value={dealerPaymentForm.date}
+                  onChange={(e) => {
+                    let value = e.target.value;
+                    value = value.replace(/[^\d/]/g, '');
+                    
+                    if (value.length === 2 && !value.includes('/')) {
+                      value = value + '/';
+                    } else if (value.length === 5 && value.split('/').length === 2) {
+                      value = value + '/';
+                    }
+                    
+                    if (value.length <= 10) {
+                      setDealerPaymentForm(prev => ({...prev, date: value}));
+                    }
+                  }}
+                  placeholder="DD/MM/YYYY"
+                  className="text-black w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:border-green-500"
+                />
+              </div>
+            </div>
+
+            {/* Balance Preview */}
+            {dealerPaymentForm.totalAmount && dealerPaymentForm.amount && (
+              <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                <div className="flex justify-between items-center">
+                  <span className="font-semibold text-blue-800">Balance after payment:</span>
+                  <span className={`font-bold text-lg ${
+                    (parseFloat(dealerPaymentForm.totalAmount) - parseFloat(dealerPaymentForm.amount)) > 0 
+                      ? 'text-red-600' 
+                      : 'text-green-600'
+                  }`}>
+                    ₹{(parseFloat(dealerPaymentForm.totalAmount) - parseFloat(dealerPaymentForm.amount)).toFixed(2)}
+                  </span>
+                </div>
+              </div>
+            )}
+
+            <div className="flex justify-end">
+              <button
+                type="submit"
+                className="bg-green-500 text-white px-6 py-2 rounded-lg hover:bg-green-600 transition-colors font-semibold"
+              >
+                💰 Add Payment
+              </button>
+            </div>
+          </form>
+        </div>
+
+        {/* Enhanced Dealers List with Expandable Stock */}
+        <div className="bg-white rounded-lg shadow-md overflow-hidden border border-orange-100">
+          <div className="p-6">
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center">
+                <div className="w-2 h-6 bg-orange-500 rounded-full mr-2"></div>
+                <h2 className="text-xl font-bold text-gray-800">
+                  🤝 Suppliers List
+                </h2>
+              </div>
+              <div className="text-sm text-gray-500 bg-orange-50 px-3 py-1 rounded-full">
+                Total: {dealers.length} Suppliers
+              </div>
+            </div>
+            
+            {loading ? (
+              <div className="text-center py-8">
+                <div className="text-xl">⏳</div>
+                <p className="text-gray-600">Loading Suppliers...</p>
+              </div>
+            ) : dealers.length === 0 ? (
               <div className="text-center py-8 text-gray-500">
-                <div className="text-4xl mb-2">💰</div>
-                <p className="text-lg font-semibold">No Payment History</p>
-                <p className="text-sm">No payments have been made to this supplier yet.</p>
+                <div className="text-4xl mb-2">🏢</div>
+                <p className="text-base font-semibold mb-1">No Suppliers found</p>
+                <p className="text-xs">Add your first Supplier to get started</p>
               </div>
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full border-collapse">
                   <thead>
-                    <tr className="bg-gradient-to-r from-purple-500 to-purple-600">
-                      <th className="border border-purple-400 px-4 py-3 text-left font-bold text-white text-sm uppercase">Date</th>
-                      <th className="border border-purple-400 px-4 py-3 text-center font-bold text-white text-sm uppercase">Total Amount (₹)</th>
-                      <th className="border border-purple-400 px-4 py-3 text-center font-bold text-white text-sm uppercase">Payment Made (₹)</th>
-                      <th className="border border-purple-400 px-4 py-3 text-center font-bold text-white text-sm uppercase">Balance (₹)</th>
+                    <tr className="bg-gradient-to-r from-orange-500 to-amber-500">
+                      <th className="border border-orange-400 px-4 py-3 text-left font-bold text-white text-sm uppercase">Supplier Details</th>
+                      <th className="border border-orange-400 px-4 py-3 text-center font-bold text-white text-sm uppercase">Total Stock Value</th>
+                      <th className="border border-orange-400 px-4 py-3 text-center font-bold text-white text-sm uppercase">GST (18%)</th>
+                      <th className="border border-orange-400 px-4 py-3 text-center font-bold text-white text-sm uppercase">Total + GST</th>
+                      <th className="border border-orange-400 px-4 py-3 text-center font-bold text-white text-sm uppercase">Paid Amount</th>
+                      <th className="border border-orange-400 px-4 py-3 text-center font-bold text-white text-sm uppercase">Balance</th>
+                      <th className="border border-orange-400 px-4 py-3 text-center font-bold text-white text-sm uppercase">Details</th>
+                      <th className="border border-orange-400 px-4 py-3 text-center font-bold text-white text-sm uppercase w-40">🔔 Send Alert</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {dealerPaymentDetails.map((payment, index) => (
-                      <tr key={index} className="border-b border-gray-200 hover:bg-purple-50">
-                        <td className="border border-gray-300 px-4 py-3 whitespace-nowrap text-black">
-                          {new Date(payment.date).toLocaleDateString('en-IN')}
-                        </td>
-                        <td className="border border-gray-300 px-4 py-3 text-center font-semibold text-blue-600">
-                          ₹{payment.totalAmount.toFixed(2)}
-                        </td>
-                        <td className="border border-gray-300 px-4 py-3 text-center font-semibold text-green-600">
-                          ₹{payment.paymentMade.toFixed(2)}
-                        </td>
-                        <td className="border border-gray-300 px-4 py-3 text-center font-semibold">
-                          <span className={payment.balance > 0 ? 'text-red-600' : 'text-green-600'}>
-                            ₹{Math.abs(payment.balance).toFixed(2)}
-                          </span>
-                        </td>
-                      </tr>
-                    ))}
+                    {dealers.slice().reverse().map((dealer, index) => {
+                      const balanceInfo = getDealerBalanceInfo(dealer);
+                      const isExpanded = expandedDealer === dealer._id;
+                      const dealerStockItems = stockItems.filter(item => item.dealer?._id === dealer._id);
+                      
+                      const totalStockCost = dealerStockItems.reduce((sum, item) => sum + (item.cost || 0), 0);
+                      const gstAmount = totalStockCost * 0.18;
+                      const totalWithGST = totalStockCost + gstAmount;
+                      
+                      return (
+                        <>
+                          <tr 
+                            key={dealer._id} 
+                            className={`border-b border-gray-200 hover:bg-orange-50 transition-colors duration-200 ${
+                              index % 2 === 0 ? 'bg-white' : 'bg-gray-50'
+                            }`}
+                            onClick={(e) => {
+                              if (!e.target.closest('button') && !e.target.closest('input') && !e.target.closest('.no-expand')) {
+                                setExpandedDealer(isExpanded ? null : dealer._id);
+                              }
+                            }}
+                          >
+                            <td className="border border-gray-300 px-4 py-3">
+                              <div className="font-semibold text-gray-800 text-lg">{dealer.name}</div>
+                              <div className="text-xs text-gray-600 mt-1">
+                                <div>📞 {dealer.contact}</div>
+                                <div>🏷️ {dealer.gstNumber || 'No GST'}</div>
+                                <div className="mt-1 text-gray-500 max-w-md truncate">{dealer.address}</div>
+                              </div>
+                            </td>
+                            <td className="border border-gray-300 px-4 py-3 text-center">
+                              <div className="text-blue-600 font-bold text-sm">
+                                ₹{totalStockCost.toFixed(2)}
+                              </div>
+                            </td>
+                            <td className="border border-gray-300 px-4 py-3 text-center">
+                              <div className="text-purple-600 font-bold text-sm">
+                                ₹{gstAmount.toFixed(2)}
+                              </div>
+                            </td>
+                            <td className="border border-gray-300 px-4 py-3 text-center">
+                              <div className="text-green-600 font-bold text-lg">
+                                ₹{totalWithGST.toFixed(2)}
+                              </div>
+                            </td>
+                            <td className="border border-gray-300 px-4 py-3 text-center">
+                              <div className="text-green-600 font-bold text-lg">
+                                ₹{balanceInfo.totalPayments.toFixed(2)}
+                              </div>
+                            </td>
+                            <td className="border border-gray-300 px-4 py-3 text-center">
+                              <div className={`font-bold text-lg ${
+                                balanceInfo.balance > 0 ? 'text-red-600' : 
+                                balanceInfo.balance < 0 ? 'text-blue-600' : 'text-gray-600'
+                              }`}>
+                                ₹{Math.abs(balanceInfo.balance).toFixed(2)}
+                              </div>
+                              <div className="text-xs text-gray-500 mt-1">
+                                {balanceInfo.balance > 0 ? 'You Owe' : 
+                                 balanceInfo.balance < 0 ? 'You Get' : 'Settled'}
+                              </div>
+                            </td>
+                            
+                            <td className="border border-gray-300 px-4 py-3 text-center">
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setSelectedDealerForDetails(dealer);
+                                  setShowPaymentDetails(true);
+                                  fetchDealerPaymentDetails(dealer._id);
+                                }}
+                                className="bg-purple-500 text-white px-4 py-2 rounded-lg hover:bg-purple-600 transition-colors font-semibold"
+                              >
+                                📊 Details
+                              </button>
+                            </td>
+
+                            <td className="border border-gray-300 px-4 py-3 text-center text-black no-expand">
+                              <DealerAlertSection 
+                                dealer={dealer} 
+                                onAlertSet={handleAlertSet}
+                                onAlertReset={handleAlertReset}
+                              />
+                            </td>
+                          </tr>
+                          
+                          {isExpanded && (
+                            <tr className="bg-blue-50">
+                              <td colSpan="8" className="border border-gray-300 px-4 py-4">
+                                <div className="mb-4">
+                                  <h4 className="font-bold text-blue-800 text-lg mb-3">📦 Stock Items from {dealer.name}</h4>
+                                  
+                                  {dealerStockItems.length === 0 ? (
+                                    <div className="text-center py-4 text-gray-500">
+                                      <div className="text-2xl mb-2">📭</div>
+                                      <p>No stock items found for this Supplier</p>
+                                    </div>
+                                  ) : (
+                                    <div className="overflow-x-auto h-100">
+                                      <table className="w-full border-collapse">
+                                        <thead>
+                                          <tr className="bg-gradient-to-r from-blue-400 to-blue-500">
+                                            <th className="border border-blue-300 px-3 py-2 text-left font-bold text-white text-xs uppercase">IMEI</th>
+                                            <th className="border border-blue-300 px-3 py-2 text-left font-bold text-white text-xs uppercase">Brand</th>
+                                            <th className="border border-blue-300 px-3 py-2 text-left font-bold text-white text-xs uppercase">Model</th>
+                                            <th className="border border-blue-300 px-3 py-2 text-left font-bold text-white text-xs uppercase">HSN</th>
+                                            <th className="border border-blue-300 px-3 py-2 text-center font-bold text-white text-xs uppercase">Cost (₹)</th>
+                                            <th className="border border-blue-300 px-3 py-2 text-center font-bold text-white text-xs uppercase">GST (18%)</th>
+                                            <th className="border border-blue-300 px-3 py-2 text-center font-bold text-white text-xs uppercase">Total (₹)</th>
+                                            <th className="border border-blue-300 px-3 py-2 text-center font-bold text-white text-xs uppercase">Status</th>
+                                          </tr>
+                                        </thead>
+                                        <tbody>
+                                          {dealerStockItems.map((stockItem, stockIndex) => {
+                                            const itemGST = (stockItem.cost || 0) * 0.18;
+                                            const itemTotal = (stockItem.cost || 0) + itemGST;
+                                            
+                                            return (
+                                              <tr 
+                                                key={stockItem._id} 
+                                                className={`border-b border-gray-200 hover:bg-blue-100 transition-colors duration-150 ${
+                                                  stockIndex % 2 === 0 ? 'bg-white' : 'bg-blue-50'
+                                                }`}
+                                              >
+                                                <td className="border border-gray-300 px-3 py-2 font-mono text-blue-600 bg-blue-50 text-xs">
+                                                  {stockItem.imei || 'N/A'}
+                                                </td>
+                                                <td className="border border-gray-200 px-3 py-2 whitespace-nowrap text-gray-800 font-medium text-sm">
+                                                  {stockItem.product?.name || 'N/A'}
+                                                </td>
+                                                <td className="border border-gray-300 px-3 py-2 whitespace-nowrap text-gray-700 text-sm">
+                                                  {stockItem.variant?.variantName || 'N/A'}
+                                                </td>
+                                                <td className="border border-gray-300 px-3 py-2 font-mono whitespace-nowrap text-gray-700 text-sm">
+                                                  {stockItem.hsn || 'N/A'}
+                                                </td>
+                                                <td className="border border-gray-300 px-3 py-2 font-semibold whitespace-nowrap text-blue-600 text-sm text-center">
+                                                  ₹{(stockItem.cost || 0).toFixed(2)}
+                                                </td>
+                                                <td className="border border-gray-300 px-3 py-2 font-semibold whitespace-nowrap text-purple-600 text-sm text-center">
+                                                  ₹{itemGST.toFixed(2)}
+                                                </td>
+                                                <td className="border border-gray-300 px-3 py-2 font-semibold whitespace-nowrap text-green-600 text-base text-center">
+                                                  ₹{itemTotal.toFixed(2)}
+                                                </td>
+                                                <td className="border border-gray-300 px-3 py-2 whitespace-nowrap text-center">
+                                                  <span className={`inline-flex items-center justify-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                                                    stockItem.status === 'sold' 
+                                                      ? 'bg-red-100 text-red-800 border border-red-200' 
+                                                      : 'bg-green-100 text-green-800 border border-green-200'
+                                                  }`}>
+                                                    {stockItem.status === 'sold' ? '🔴 Sold' : '📦 In Stock'}
+                                                  </span>
+                                                </td>
+                                              </tr>
+                                            );
+                                          })}
+                                        </tbody>
+                                        <tfoot>
+                                          <tr className="bg-blue-100">
+                                            <td colSpan="4" className="border border-gray-300 px-3 py-2 text-right font-bold text-gray-800">
+                                              Totals:
+                                            </td>
+                                            <td className="border border-gray-300 px-3 py-2 text-center font-bold text-blue-700">
+                                              ₹{totalStockCost.toFixed(2)}
+                                            </td>
+                                            <td className="border border-gray-300 px-3 py-2 text-center font-bold text-purple-700">
+                                              ₹{gstAmount.toFixed(2)}
+                                            </td>
+                                            <td className="border border-gray-300 px-3 py-2 text-center font-bold text-green-700">
+                                              ₹{totalWithGST.toFixed(2)}
+                                            </td>
+                                            <td className="border border-gray-300 px-3 py-2 text-center">
+                                              <div className="text-xs text-gray-600">
+                                                {dealerStockItems.filter(item => item.status === 'in_stock').length} in stock
+                                              </div>
+                                            </td>
+                                          </tr>
+                                        </tfoot>
+                                      </table>
+                                    </div>
+                                  )}
+                                </div>
+                              </td>
+                            </tr>
+                          )}
+                        </>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
             )}
           </div>
-          
-          <div className="p-4 border-t border-gray-200 bg-gray-50">
-            <div className="flex justify-end">
-              <button
-                onClick={() => {
-                  setShowPaymentDetails(false);
-                  setSelectedDealerForDetails(null);
-                  setDealerPaymentDetails([]);
-                }}
-                className="bg-gray-500 text-white px-6 py-2 rounded-lg hover:bg-gray-600 transition-colors font-semibold"
-              >
-                Close
-              </button>
+        </div>
+
+        {/* Payment Details Modal */}
+        {showPaymentDetails && selectedDealerForDetails && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-hidden">
+              <div className="p-6 border-b border-gray-200">
+                <div className="flex justify-between items-center">
+                  <h3 className="text-xl font-bold text-gray-800">
+                    Payment Details - {selectedDealerForDetails.name}
+                  </h3>
+                  <button
+                    onClick={() => {
+                      setShowPaymentDetails(false);
+                      setSelectedDealerForDetails(null);
+                      setDealerPaymentDetails([]);
+                    }}
+                    className="text-gray-500 hover:text-gray-700 text-2xl"
+                  >
+                    ×
+                  </button>
+                </div>
+              </div>
+              
+              <div className="p-6 overflow-y-auto max-h-[60vh]">
+                {dealerPaymentDetails.length === 0 ? (
+                  <div className="text-center py-8 text-gray-500">
+                    <div className="text-4xl mb-2">💰</div>
+                    <p className="text-lg font-semibold">No Payment History</p>
+                    <p className="text-sm">No payments have been made to this supplier yet.</p>
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full border-collapse">
+                      <thead>
+                        <tr className="bg-gradient-to-r from-purple-500 to-purple-600">
+                          <th className="border border-purple-400 px-4 py-3 text-left font-bold text-white text-sm uppercase">Date</th>
+                          <th className="border border-purple-400 px-4 py-3 text-center font-bold text-white text-sm uppercase">Total Amount (₹)</th>
+                          <th className="border border-purple-400 px-4 py-3 text-center font-bold text-white text-sm uppercase">Payment Made (₹)</th>
+                          <th className="border border-purple-400 px-4 py-3 text-center font-bold text-white text-sm uppercase">Balance (₹)</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {dealerPaymentDetails.map((payment, index) => (
+                          <tr key={index} className="border-b border-gray-200 hover:bg-purple-50">
+                            <td className="border border-gray-300 px-4 py-3 whitespace-nowrap text-black">
+                              {new Date(payment.date).toLocaleDateString('en-IN')}
+                            </td>
+                            <td className="border border-gray-300 px-4 py-3 text-center font-semibold text-blue-600">
+                              ₹{payment.totalAmount.toFixed(2)}
+                            </td>
+                            <td className="border border-gray-300 px-4 py-3 text-center font-semibold text-green-600">
+                              ₹{payment.paymentMade.toFixed(2)}
+                            </td>
+                            <td className="border border-gray-300 px-4 py-3 text-center font-semibold">
+                              <span className={payment.balance > 0 ? 'text-red-600' : 'text-green-600'}>
+                                ₹{Math.abs(payment.balance).toFixed(2)}
+                              </span>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+              
+              <div className="p-4 border-t border-gray-200 bg-gray-50">
+                <div className="flex justify-end">
+                  <button
+                    onClick={() => {
+                      setShowPaymentDetails(false);
+                      setSelectedDealerForDetails(null);
+                      setDealerPaymentDetails([]);
+                    }}
+                    className="bg-gray-500 text-white px-6 py-2 rounded-lg hover:bg-gray-600 transition-colors font-semibold"
+                  >
+                    Close
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
-        </div>
-      </div>
+        )}
+      </>
     )}
   </div>
 )}

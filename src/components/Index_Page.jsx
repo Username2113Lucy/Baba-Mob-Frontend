@@ -199,7 +199,7 @@ export const Index_Page = ({ user, onLogout }) => {
 
         {/* Center - Title */}
         <h1 className="text-md sm:text-lg font-bold text-center tracking-tight font-serif flex-1 text-center">
-          Mobile Shop Billing
+          BAABA MOBILE WORLD
         </h1>
 
         {/* Right - User Menu */}
