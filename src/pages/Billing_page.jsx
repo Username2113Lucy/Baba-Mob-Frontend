@@ -1220,7 +1220,7 @@ const handleAddCustomer = async () => {
     // Prepare customer data
     const newCustomer = {
       invoiceNumber: invoiceNumber,
-      customerName: customerData.name,
+      customerName: customerData.name.trim(),
       phone: customerData.phone,
       address: customerData.address,
       cost: parseFloat(customerData.cost),
@@ -1253,12 +1253,50 @@ const handleAddCustomer = async () => {
 
     const result = await response.json();
     
-       if (!response.ok) {
+    if (!response.ok) {
       throw new Error(result.message || `HTTP error! status: ${response.status}`);
     }
 
     if (result.success) {
       const savedCustomer = result.data;
+      
+      // ✅ CRITICAL FIX: Mark stock item as sold for SALES customers
+      if (shopType === 'sales' && customerData.imei) {
+        try {
+          console.log('🔄 Looking for stock item with IMEI:', customerData.imei);
+          
+          // Find the stock item by IMEI
+          const stockItem = stockItems.find(item => item.imei === customerData.imei);
+          console.log('📦 Found stock item:', stockItem);
+          
+          if (stockItem) {
+            console.log('🎯 Marking stock item as sold:', stockItem._id);
+            
+            // Update stock item status to 'sold'
+            const stockResponse = await fetch(`${STOCK_API}/${stockItem._id}/sold`, {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ customerId: savedCustomer._id })
+            });
+
+            if (stockResponse.ok) {
+              const stockResult = await stockResponse.json();
+              console.log('✅ Stock item marked as sold:', stockResult);
+              
+              // Refresh stock data to show updated status
+              await fetchStockData();
+              console.log('🔄 Stock data refreshed after sales');
+            } else {
+              console.error('❌ Failed to mark stock item as sold');
+            }
+          } else {
+            console.warn('⚠️ Stock item not found for IMEI:', customerData.imei);
+          }
+        } catch (stockError) {
+          console.error('❌ Error updating stock item:', stockError);
+          // Continue even if stock update fails, but log the error
+        }
+      }
       
       // ✅ ADD THIS: Refresh stock data after creating service customer
       if (shopType === 'service') {
