@@ -4990,16 +4990,28 @@ return (
         </div>
 
         {/* Multi-brand Customers Table */}
-{multiBrandCustomers.length > 0 && (
-  <div className="bg-white rounded-lg shadow-md overflow-hidden border border-orange-100 mt-4">
-    <div className="p-4">
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-bold text-gray-800">Multi-brand Records</h3>
-        <div className="text-xs text-gray-500 bg-orange-50 px-2 py-1 rounded-full">
-          Total: {multiBrandCustomers.length} records
-        </div>
+<div className="bg-white rounded-lg shadow-md overflow-hidden border border-orange-100 mt-4">
+  <div className="p-4">
+    {/* ✅ FIX 2: Added proper header styling like regular customer records */}
+    <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center">
+        <div className="w-2 h-6 bg-orange-500 rounded-full mr-2"></div>
+        <h2 className="text-xl font-bold text-gray-800">
+          Multi-brand Records
+        </h2>
       </div>
-      
+      <div className="text-xs text-gray-500 bg-orange-50 px-2 py-1 rounded-full">
+        Total: {multiBrandCustomers.length} records
+      </div>
+    </div>
+    
+    {multiBrandCustomers.length === 0 ? (
+      <div className="text-center py-8 text-gray-500">
+        <div className="text-4xl mb-2">📋</div>
+        <p className="text-base font-semibold mb-1">No multi-brand records found</p>
+        <p className="text-xs">Add your first multi-brand customer to get started</p>
+      </div>
+    ) : (
       <div className="overflow-x-auto text-black">
         <table className="w-full border-collapse">
           <thead>
@@ -5024,7 +5036,7 @@ return (
             {multiBrandCustomers.map((customer, index) => (
               <tr key={index} className="hover:bg-orange-50 transition-colors duration-200 border-b border-gray-200">
                 <td className="border border-gray-200 px-3 py-2 whitespace-nowrap text-gray-700 text-sm">
-                  {new Date().toLocaleString('en-IN', {
+                  {customer.date ? formatDateTime(customer.date) : new Date().toLocaleString('en-IN', {
                     day: '2-digit',
                     month: '2-digit',
                     year: 'numeric',
@@ -5078,26 +5090,26 @@ return (
                     min="0"
                   />
                 </td>
-<td className="border border-gray-200 px-3 py-2 whitespace-nowrap w-40">
-  <div className="flex justify-center items-center">
-    <div className={`inline-flex items-center px-3 py-1 rounded-md text-xs font-medium ${
-      customer.paymentMode === 'cash' 
-        ? 'bg-green-50 text-green-700 border-l-4 border-green-500' :
-      customer.paymentMode === 'gpay' 
-        ? 'bg-blue-50 text-blue-700 border-l-4 border-blue-500' :
-      'bg-purple-50 text-purple-700 border-l-4 border-purple-500'
-    }`}>
-      <div className={`w-2 h-2 rounded-full mr-2 animate-pulse ${
-        customer.paymentMode === 'cash' ? 'bg-green-500' : 
-        customer.paymentMode === 'gpay' ? 'bg-blue-500' : 
-        'bg-purple-500'
-      }`}></div>
-      {customer.paymentMode === 'cash' ? 'Cash' : 
-       customer.paymentMode === 'gpay' ? 'Gpay' : 
-       `EMI-${customer.financeCompany ? customer.financeCompany.toUpperCase() : 'N/A'}`}
-    </div>
-  </div>
-</td>
+                <td className="border border-gray-200 px-3 py-2 whitespace-nowrap w-40">
+                  <div className="flex justify-center items-center">
+                    <div className={`inline-flex items-center px-3 py-1 rounded-md text-xs font-medium ${
+                      customer.paymentMode === 'cash' 
+                        ? 'bg-green-50 text-green-700 border-l-4 border-green-500' :
+                      customer.paymentMode === 'gpay' 
+                        ? 'bg-blue-50 text-blue-700 border-l-4 border-blue-500' :
+                      'bg-purple-50 text-purple-700 border-l-4 border-purple-500'
+                    }`}>
+                      <div className={`w-2 h-2 rounded-full mr-2 animate-pulse ${
+                        customer.paymentMode === 'cash' ? 'bg-green-500' : 
+                        customer.paymentMode === 'gpay' ? 'bg-blue-500' : 
+                        'bg-purple-500'
+                      }`}></div>
+                      {customer.paymentMode === 'cash' ? 'Cash' : 
+                       customer.paymentMode === 'gpay' ? 'Gpay' : 
+                       `EMI-${customer.financeCompany ? customer.financeCompany.toUpperCase() : 'N/A'}`}
+                    </div>
+                  </div>
+                </td>
                 <td className="border border-gray-200 px-3 py-2 font-semibold whitespace-nowrap text-green-600 text-base">
                   ₹{customer.cost.toFixed(2)}
                 </td>
@@ -5143,9 +5155,9 @@ return (
           </tbody>
         </table>
       </div>
-    </div>
+    )}
   </div>
-)}
+</div>
 
         {/* Multi-brand Income Summary */}
         <div className="bg-white rounded-xl p-4 shadow-lg mt-4 border border-orange-200">
