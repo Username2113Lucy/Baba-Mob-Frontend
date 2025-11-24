@@ -210,10 +210,21 @@ const Login = ({ onLogin }) => {
           
           {/* Header Section with Branding */}
           <div className="bg-orange-500 py-6 px-6 text-center">
-            <div className="flex justify-center mb-4">
-              <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center shadow-lg">
-                <span className="text-orange-500 text-2xl font-bold">B</span>
-              </div>
+          <div className="flex justify-center mb-4">
+            <div className="w-25 h-25 bg-white rounded-full flex items-center justify-center shadow-lg overflow-hidden">
+              <img 
+                src="/logo_2.png" 
+                alt="Baaba Mobile World Logo" 
+                className="w-50 h-50 object-contain p-1"
+                onError={(e) => {
+                  // Fallback if image fails to load
+                  e.target.style.display = 'none';
+                  e.target.nextSibling.style.display = 'block';
+                }}
+              />
+              {/* Fallback text if image fails to load */}
+              <span className="text-orange-500 text-2xl font-bold hidden">B</span>
+            </div>
             </div>
             <h1 className="text-2xl font-bold text-white mb-1">BAABA MOBILE WORLD</h1>
             <p className="text-orange-100 text-sm">Billing System Login</p>
