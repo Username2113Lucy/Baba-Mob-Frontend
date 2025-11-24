@@ -14,8 +14,8 @@ const Login = ({ onLogin }) => {
 
   // User database - you can expand this later
   const users = [
-    { email: 'admin@baba.com', password: 'admin123', username: 'Admin', role: 'Super Admin' },
-    { email: 'manager@baba.com', password: 'manager123', username: 'Manager', role: 'Manager' },
+    { email: 'admin@baaba.com', password: 'admin123', username: 'Admin', role: 'Super Admin' },
+    { email: 'manager@baaba.com', password: 'manager123', username: 'Manager', role: 'Manager' },
   ];
 
   const maxAttempts = 3;
@@ -215,7 +215,7 @@ const Login = ({ onLogin }) => {
                 <span className="text-orange-500 text-2xl font-bold">B</span>
               </div>
             </div>
-            <h1 className="text-2xl font-bold text-white mb-1">BABA MOBILES</h1>
+            <h1 className="text-2xl font-bold text-white mb-1">BAABA MOBILE WORLD</h1>
             <p className="text-orange-100 text-sm">Billing System Login</p>
           </div>
 
@@ -288,11 +288,11 @@ const Login = ({ onLogin }) => {
                 <p className="text-xs text-gray-500 font-semibold mb-2">DEMO ACCOUNTS</p>
                 <div className="space-y-1 text-xs text-gray-600">
                   <div className="flex justify-between">
-                    <span>admin@baba.com</span>
+                    <span>admin@baaba.com</span>
                     <span className="text-orange-500 font-medium">admin123</span>
                   </div>
                   <div className="flex justify-between">
-                    <span>manager@baba.com</span>
+                    <span>manager@baaba.com</span>
                     <span className="text-orange-500 font-medium">manager123</span>
                   </div>
                 </div>
