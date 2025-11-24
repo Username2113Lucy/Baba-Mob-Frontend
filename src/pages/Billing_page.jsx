@@ -4394,7 +4394,6 @@ return (
                 </div>
               )}
 
-              // In your cashier dropdown, add loading state:
 <div className="space-y-1">
   <label className="block text-xs font-semibold text-gray-700 mb-1">
     👨‍💼 Cashier *
