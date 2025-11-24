@@ -246,6 +246,55 @@ useEffect(() => {
   }
 }, [activeTab]);
 
+// Add these new states for passwords
+const [passwords, setPasswords] = useState({
+  salesSupplier: '',
+  salesItemPage: '',
+  salesStockTable: '',
+  serviceItemPage: ''
+});
+
+const [unlockedSections, setUnlockedSections] = useState({
+  salesSupplier: false,
+  salesItemPage: false,
+  salesStockTable: false,
+  serviceItemPage: false
+});
+
+const [passwordErrors, setPasswordErrors] = useState({
+  salesSupplier: '',
+  salesItemPage: '',
+  salesStockTable: '',
+  serviceItemPage: ''
+});
+
+// Define your passwords (you might want to make these configurable)
+const SECTION_PASSWORDS = {
+  salesItemPage: 'SalesItem@123',
+  salesStockTable: 'StockTable@123',
+  serviceItemPage: 'ServiceItem@123'
+};
+
+// Password handler
+const handlePasswordSubmit = (section) => {
+  if (passwords[section] === SECTION_PASSWORDS[section]) {
+    setUnlockedSections(prev => ({ ...prev, [section]: true }));
+    setPasswordErrors(prev => ({ ...prev, [section]: '' }));
+  } else {
+    setPasswordErrors(prev => ({ ...prev, [section]: '❌ Incorrect password' }));
+  }
+};
+
+const handlePasswordChange = (section, value) => {
+  setPasswords(prev => ({ ...prev, [section]: value }));
+  setPasswordErrors(prev => ({ ...prev, [section]: '' }));
+};
+
+const lockSection = (section) => {
+  setUnlockedSections(prev => ({ ...prev, [section]: false }));
+  setPasswords(prev => ({ ...prev, [section]: '' }));
+};
+
   // 🧾 Cashier State (Separate for Service and Sales)
   const [serviceCashiers, setServiceCashiers] = useState([]);
   const [salesCashiers, setSalesCashiers] = useState([]);
@@ -5586,6 +5635,65 @@ return (
         {/* Items Management Section */}
         {activeTab === 'items' && (
           <div className="space-y-4">
+          {/* Password Protection for Items Page */}
+    {!unlockedSections[`${shopType}ItemPage`] ? (
+      <div className="bg-gradient-to-br from-gray-900 to-black border-2 border-gray-700 rounded-2xl shadow-2xl p-8 w-full max-w-md mx-auto mt-8">
+        <div className="text-center mb-6">
+          <div className="w-20 h-20 bg-gradient-to-r from-orange-500 to-amber-500 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
+            <span className="text-3xl text-white">🔒</span>
+          </div>
+          <h2 className="text-2xl font-bold text-white mb-2">
+            {shopType === 'service' ? 'Service Items' : 'Sales Items'} Access
+          </h2>
+          <p className="text-gray-400 text-sm">Enter password to manage items</p>
+        </div>
+
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-semibold text-gray-300 mb-2">
+              🔑 Access Password
+            </label>
+            <input
+              type="password"
+              value={passwords[`${shopType}ItemPage`]}
+              onChange={(e) => handlePasswordChange(`${shopType}ItemPage`, e.target.value)}
+              onKeyPress={(e) => {
+                if (e.key === 'Enter') {
+                  handlePasswordSubmit(`${shopType}ItemPage`);
+                }
+              }}
+              placeholder="Enter access password"
+              className="w-full bg-gray-800 border-2 border-gray-600 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-orange-500 transition-colors duration-300 text-center font-semibold"
+              autoFocus
+            />
+          </div>
+
+          {passwordErrors[`${shopType}ItemPage`] && (
+            <div className="bg-red-900 bg-opacity-50 border border-red-700 rounded-lg p-3 text-center">
+              <span className="text-red-300 text-sm">{passwordErrors[`${shopType}ItemPage`]}</span>
+            </div>
+          )}
+
+          <button
+            onClick={() => handlePasswordSubmit(`${shopType}ItemPage`)}
+            className="w-full bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-bold py-3 px-4 rounded-xl transition-all duration-300 transform hover:scale-105 active:scale-95 shadow-lg"
+          >
+            🚀 Unlock Items
+          </button>
+        </div>
+      </div>
+    ) : (
+      <>
+        {/* Lock Button */}
+        <div className="flex justify-end">
+          <button
+            onClick={() => lockSection(`${shopType}ItemPage`)}
+            className="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors font-semibold flex items-center gap-2 shadow-lg"
+          >
+            🔒 Lock Items
+          </button>
+        </div>
+
             {/* Stock Management Section */}
             <div className="bg-white rounded-lg p-4 shadow-md border border-orange-100">
               <div className="flex items-center justify-between mb-4">
@@ -6134,6 +6242,8 @@ if (shopType === 'sales') {
                 </div>
               )}
             </div>
+      </>
+    )}
           </div>
         )}
 
@@ -6365,38 +6475,6 @@ if (shopType === 'sales') {
             </h2>
           </div>
 
-{/* Password Protection Section - Single Line */}
-<div className="bg-white rounded-lg p-4 border border-orange-200 mb-4">
-  <div className="flex items-center gap-4">
-    <label className="text-sm font-semibold text-gray-700 whitespace-nowrap">
-      🔒 Stock Save Password *
-    </label>
-    <div className="flex-1">
-      <input
-        type="password"
-        value={stockPassword}
-        onChange={(e) => setStockPassword(e.target.value)}
-        placeholder="Enter password to save stock"
-        className={`w-70 text-black border-2 rounded-lg px-3 py-2 focus:outline-none transition-colors duration-300 ${
-          stockPassword === '' 
-            ? 'border-gray-300' 
-            : stockPassword === STOCK_PASSWORD  
-              ? 'border-green-500 bg-green-50' 
-              : 'border-red-500 bg-red-50'
-        }`}
-      />
-    </div>
-    <div className="text-sm whitespace-nowrap">
-      {stockPassword === '' ? (
-        <span className="text-gray-500">⚠️ Enter password</span>
-      ) : stockPassword ===  STOCK_PASSWORD ? (
-        <span className="text-green-600">✅ Correct</span>
-      ) : (
-        <span className="text-red-600">❌ Incorrect</span>
-      )}
-    </div>
-  </div>
-</div>
 
           <button
             onClick={addStockRow}
@@ -6679,31 +6757,14 @@ if (shopType === 'sales') {
 
         {/* Save Stock Button */}
         <div className="flex justify-end mt-6">
+
   <button
-    onClick={async () => {
-      if (stockPassword !== STOCK_PASSWORD) {
-        alert('❌ Please enter correct password to save stock');
-        return;
-      }
-      
-      try {
-        await handleSaveStockItems();
-        // Clear password after successful save
-        setStockPassword('');
-      } catch (error) {
-        // Keep password if save failed
-        console.error('Save failed:', error);
-      }
-    }}
-    disabled={stockPassword !== STOCK_PASSWORD}
-    className={`px-6 py-2 rounded-lg transition-colors font-semibold ${
-      stockPassword === STOCK_PASSWORD  
-        ? 'bg-green-500 text-white hover:bg-green-600 cursor-pointer' 
-        : 'bg-gray-400 text-gray-200 cursor-not-allowed'
-    }`}
+    onClick={handleSaveStockItems}
+    className="bg-green-500 text-white px-6 py-2 rounded-lg hover:bg-green-600 transition-colors font-semibold"
   >
-    {stockPassword === STOCK_PASSWORD  ? '💾 Save All Stock Items' : '🔒 Enter Password to Save'}
+    💾 Save All Stock Items
   </button>
+
           </div>
       </div>
     )}
@@ -6961,7 +7022,7 @@ Thank you for shopping with us! 🎉`
   <div className="space-y-6">
     {/* LOCK SCREEN - Show when locked */}
     {!isDealersUnlocked && (
-      <div className="bg-gradient-to-br mt-20 from-gray-900 to-black border-2 border-gray-700 rounded-2xl shadow-2xl p-8 w-full max-w-md mx-auto mt-8">
+      <div className="bg-gradient-to-br  from-gray-900 to-black border-2 border-gray-700 rounded-2xl shadow-2xl p-8 w-full max-w-md mx-auto mt-20">
         {/* Lock Icon */}
         <div className="text-center mb-6">
           <div className="w-20 h-20 bg-gradient-to-r from-orange-500 to-amber-500 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
@@ -7985,8 +8046,65 @@ Thank you for shopping with us! 🎉`
       </>
     )}
 
-{/* Stock Records Table - Show only for Sales when stock tab is selected */}
+{/* Stock Records Table with Password Protection */}
 {activeTab === 'filter' && shopType === 'sales' && salesFilterTab === 'stock' && (
+  <>
+    {!unlockedSections.salesStockTable ? (
+      <div className="bg-gradient-to-br from-gray-900 to-black border-2 border-gray-700 rounded-2xl shadow-2xl p-8 w-full max-w-md mx-auto mt-8">
+        <div className="text-center mb-6">
+          <div className="w-20 h-20 bg-gradient-to-r from-orange-500 to-amber-500 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
+            <span className="text-3xl text-white">🔒</span>
+          </div>
+          <h2 className="text-2xl font-bold text-white mb-2">Stock Records Access</h2>
+          <p className="text-gray-400 text-sm">Enter password to view stock records</p>
+        </div>
+
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-semibold text-gray-300 mb-2">
+              🔑 Access Password
+            </label>
+            <input
+              type="password"
+              value={passwords.salesStockTable}
+              onChange={(e) => handlePasswordChange('salesStockTable', e.target.value)}
+              onKeyPress={(e) => {
+                if (e.key === 'Enter') {
+                  handlePasswordSubmit('salesStockTable');
+                }
+              }}
+              placeholder="Enter access password"
+              className="w-full bg-gray-800 border-2 border-gray-600 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-orange-500 transition-colors duration-300 text-center font-semibold"
+              autoFocus
+            />
+          </div>
+
+          {passwordErrors.salesStockTable && (
+            <div className="bg-red-900 bg-opacity-50 border border-red-700 rounded-lg p-3 text-center">
+              <span className="text-red-300 text-sm">{passwordErrors.salesStockTable}</span>
+            </div>
+          )}
+
+          <button
+            onClick={() => handlePasswordSubmit('salesStockTable')}
+            className="w-full bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-bold py-3 px-4 rounded-xl transition-all duration-300 transform hover:scale-105 active:scale-95 shadow-lg"
+          >
+            🚀 Unlock Stock Records
+          </button>
+        </div>
+      </div>
+    ) : (
+      <>
+        {/* Lock Button */}
+        <div className="flex justify-end mb-4">
+          <button
+            onClick={() => lockSection('salesStockTable')}
+            className="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors font-semibold flex items-center gap-2 shadow-lg"
+          >
+            🔒 Lock Stock Records
+          </button>
+        </div>
+
   <div className="bg-white rounded-lg shadow-md overflow-hidden border border-orange-100">
     <div className="p-4">
       <div className="flex items-center justify-between mb-4">
@@ -8188,6 +8306,9 @@ Thank you for shopping with us! 🎉`
       </div>
     )}
   </div>
+      </>
+    )}
+  </>
 )}
 
 
