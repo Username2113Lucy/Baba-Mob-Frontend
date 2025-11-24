@@ -1235,6 +1235,12 @@ const handleAddCustomer = async () => {
       return;
     }
     
+    // ✅ ADDED: Phone number validation
+    if (customerData.phone.length !== 10) {
+      alert('Please enter a valid 10-digit phone number');
+      return;
+    }
+    
     // ✅ ADDED: Special validation for EMI
     if (customerData.paymentMode === 'emi' && !customerData.financeCompany) {
       alert('Please select a finance company for EMI payment');
@@ -1247,7 +1253,14 @@ const handleAddCustomer = async () => {
       alert('Please fill all required fields for service customer');
       return;
     }
+    
+    // ✅ ADDED: Phone number validation for service too
+    if (customerData.phone.length !== 10) {
+      alert('Please enter a valid 10-digit phone number');
+      return;
+    }
   }
+
 
   try {
     const invoiceNumber = generateInvoiceNumber();
