@@ -14,6 +14,7 @@ const WHATSAPP_API = `${API_BASE}/whatsapp`;
 const ACCESSORY_API = `${API_BASE}/accessories`;
 const STOCK_API = `${API_BASE}/stock-items`;
 const DEALERS_API = `${API_BASE}/dealers`;
+const CASHIER_API = `${API_BASE}/cashiers`;
 
 export const Billing_page = () => {
 const [activeTab, setActiveTab] = useState(() => {
@@ -295,29 +296,178 @@ const lockSection = (section) => {
   setPasswords(prev => ({ ...prev, [section]: '' }));
 };
 
-  // 🧾 Cashier State (Separate for Service and Sales)
+// You can add this state for better error handling
+const [cashierLoading, setCashierLoading] = useState(false);
+  // ✅ ADD THESE STATE DECLARATIONS FOR CASHIERS
   const [serviceCashiers, setServiceCashiers] = useState([]);
   const [salesCashiers, setSalesCashiers] = useState([]);
   const [cashierName, setCashierName] = useState('');
   const [editingCashier, setEditingCashier] = useState(null);
   const [editCashierName, setEditCashierName] = useState('');
 
-  // ✅ Load cashiers from localStorage on component mount
-  useEffect(() => {
-    const savedCashiers = loadCashiersFromLocalStorage();
-    setServiceCashiers(savedCashiers?.service || []);
-    setSalesCashiers(savedCashiers?.sales || []);
-  }, []);
+// ✅ REPLACE: Load cashiers from API instead of localStorage
+useEffect(() => {
+  fetchCashiers();
+}, [shopType]); // Fetch when shopType changes
 
-  // ✅ Save cashiers to localStorage whenever cashiers change
-  useEffect(() => {
-    if (serviceCashiers.length > 0 || salesCashiers.length > 0) {
-      saveCashiersToLocalStorage({
-        service: serviceCashiers,
-        sales: salesCashiers
-      });
+// ✅ NEW: Fetch cashiers from backend API
+const fetchCashiers = async () => {
+  try {
+    const response = await fetch(`${CASHIER_API}?type=${shopType}`);
+    const result = await response.json();
+    
+    if (result.success) {
+      const cashiers = result.data.map(cashier => cashier.name);
+      if (shopType === 'service') {
+        setServiceCashiers(cashiers);
+      } else {
+        setSalesCashiers(cashiers);
+      }
+    } else {
+      console.error('Error fetching cashiers:', result.message);
+      // Fallback to empty arrays
+      setServiceCashiers([]);
+      setSalesCashiers([]);
     }
-  }, [serviceCashiers, salesCashiers]);
+  } catch (error) {
+    console.error('Error fetching cashiers:', error);
+    // Fallback to empty arrays
+    setServiceCashiers([]);
+    setSalesCashiers([]);
+  }
+};
+
+// Then update your addCashier function:
+const addCashier = async () => {
+  if (!cashierName.trim()) {
+    alert('Please enter a cashier name');
+    return;
+  }
+  
+  const trimmedName = cashierName.trim();
+  setCashierLoading(true);
+  
+  try {
+    const response = await fetch(CASHIER_API, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        name: trimmedName,
+        type: shopType
+      })
+    });
+
+    const result = await response.json();
+    
+    if (result.success) {
+      await fetchCashiers();
+      setCashierName('');
+      alert('Cashier added successfully!');
+    } else {
+      alert(`Error: ${result.message}`);
+    }
+  } catch (error) {
+    console.error('Error adding cashier:', error);
+    alert('Error adding cashier. Please try again.');
+  } finally {
+    setCashierLoading(false);
+  }
+};
+
+
+// ✅ REPLACE: Delete cashier with API call
+const deleteCashier = async (name) => {
+  try {
+    // First, get the cashier ID by name and type
+    const response = await fetch(`${CASHIER_API}?type=${shopType}`);
+    const result = await response.json();
+    
+    if (result.success) {
+      const cashier = result.data.find(c => c.name === name);
+      if (cashier) {
+        const deleteResponse = await fetch(`${CASHIER_API}/${cashier._id}`, {
+          method: 'DELETE'
+        });
+        
+        const deleteResult = await deleteResponse.json();
+        
+        if (deleteResult.success) {
+          // Refresh cashiers list
+          await fetchCashiers();
+          alert('Cashier deleted successfully!');
+        } else {
+          alert(`Error: ${deleteResult.message}`);
+        }
+      } else {
+        alert('Cashier not found');
+      }
+    }
+  } catch (error) {
+    console.error('Error deleting cashier:', error);
+    alert('Error deleting cashier. Please try again.');
+  }
+};
+
+// ✅ REPLACE: Edit cashier with API call
+const startEditing = (name) => {
+  setEditingCashier(name);
+  setEditCashierName(name);
+};
+
+const saveEditing = async () => {
+  if (!editCashierName.trim()) {
+    alert('Cashier name cannot be empty');
+    return;
+  }
+  
+  const trimmedName = editCashierName.trim();
+  
+  try {
+    // First, get the cashier ID by name and type
+    const response = await fetch(`${CASHIER_API}?type=${shopType}`);
+    const result = await response.json();
+    
+    if (result.success) {
+      const cashier = result.data.find(c => c.name === editingCashier);
+      if (cashier) {
+        const updateResponse = await fetch(`${CASHIER_API}/${cashier._id}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            name: trimmedName,
+            type: shopType
+          })
+        });
+        
+        const updateResult = await updateResponse.json();
+        
+        if (updateResult.success) {
+          // Refresh cashiers list
+          await fetchCashiers();
+          setEditingCashier(null);
+          setEditCashierName('');
+          alert('Cashier updated successfully!');
+        } else {
+          alert(`Error: ${updateResult.message}`);
+        }
+      } else {
+        alert('Cashier not found');
+      }
+    }
+  } catch (error) {
+    console.error('Error updating cashier:', error);
+    alert('Error updating cashier. Please try again.');
+  }
+};
+
+const cancelEditing = () => {
+  setEditingCashier(null);
+  setEditCashierName('');
+};
 
   // Add these to your component state
 const [editVariantPrice, setEditVariantPrice] = useState('');
@@ -339,30 +489,6 @@ const handleRowClick = (dealer, e) => {
   setExpandedDealer(expandedDealer === dealer._id ? null : dealer._id);
 };
 
-
-  // localStorage utility functions for cashiers
-  const CASHIERS_STORAGE_KEY = 'billing_cashiers';
-
-  const saveCashiersToLocalStorage = (cashiers) => {
-    try {
-      localStorage.setItem(CASHIERS_STORAGE_KEY, JSON.stringify(cashiers));
-      console.log('💰 Saved cashiers to localStorage:', cashiers);
-    } catch (error) {
-      console.error('Error saving cashiers to localStorage:', error);
-    }
-  };
-
-  const loadCashiersFromLocalStorage = () => {
-    try {
-      const item = localStorage.getItem(CASHIERS_STORAGE_KEY);
-      const cashiers = item ? JSON.parse(item) : { service: [], sales: [] };
-      console.log('💰 Loaded cashiers from localStorage:', cashiers);
-      return cashiers;
-    } catch (error) {
-      console.error('Error loading cashiers from localStorage:', error);
-      return { service: [], sales: [] };
-    }
-  };
 
   // Filter functions
   const handleApplyAccessoryFilter = () => {
@@ -2596,77 +2722,7 @@ const getDealerBalanceInfo = (dealer) => {
     }
   }, [activeTab, shopType]);
 
-  // ➕ Add new cashier to appropriate list
-  const addCashier = () => {
-    if (!cashierName.trim()) {
-      alert('Please enter a cashier name');
-      return;
-    }
-    
-    const trimmedName = cashierName.trim();
-    const currentCashiers = shopType === 'service' ? serviceCashiers : salesCashiers;
-    
-    if (currentCashiers.includes(trimmedName)) {
-      alert('Cashier name already exists');
-      return;
-    }
-    
-    if (shopType === 'service') {
-      setServiceCashiers([...serviceCashiers, trimmedName]);
-    } else {
-      setSalesCashiers([...salesCashiers, trimmedName]);
-    }
-    
-    setCashierName('');
-  };
 
-  // 🗑️ Delete cashier from appropriate list
-  const deleteCashier = (name) => {
-    if (shopType === 'service') {
-      const newCashiers = serviceCashiers.filter(c => c !== name);
-      setServiceCashiers(newCashiers);
-    } else {
-      const newCashiers = salesCashiers.filter(c => c !== name);
-      setSalesCashiers(newCashiers);
-    }
-  };
-
-  // ✏️ Edit cashier (inline editing)
-  const startEditing = (name) => {
-    setEditingCashier(name);
-    setEditCashierName(name);
-  };
-
-  const saveEditing = () => {
-    if (!editCashierName.trim()) {
-      alert('Cashier name cannot be empty');
-      return;
-    }
-    
-    const trimmedName = editCashierName.trim();
-    const currentCashiers = shopType === 'service' ? serviceCashiers : salesCashiers;
-    
-    if (trimmedName !== editingCashier && currentCashiers.includes(trimmedName)) {
-      alert('Cashier name already exists');
-      return;
-    }
-
-    if (shopType === 'service') {
-      const newCashiers = serviceCashiers.map(c => (c === editingCashier ? trimmedName : c));
-      setServiceCashiers(newCashiers);
-    } else {
-      const newCashiers = salesCashiers.map(c => (c === editingCashier ? trimmedName : c));
-      setSalesCashiers(newCashiers);
-    }
-    
-    setEditingCashier(null);
-    setEditCashierName('');
-  };
-
-  const cancelEditing = () => {
-    setEditingCashier(null);
-    setEditCashierName('');
-  };
 
   // Add these filter handlers
   const handleStockFilterChange = (e) => {
@@ -4338,30 +4394,35 @@ return (
                 </div>
               )}
 
-              {/* Cashier Dropdown */}
-              <div className="space-y-1">
-                <label className="block text-xs font-semibold text-gray-700 mb-1">
-                  👨‍💼 Cashier *
-                </label>
-                <select
-                  value={customerData.cashier}
-                  onChange={(e) => setCustomerData(prev => ({...prev, cashier: e.target.value}))}
-                  className="text-gray-800 w-full h-10 border border-gray-300 rounded-lg px-3 focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-200 transition-all duration-200 bg-white"
-                  required
-                >
-                  <option value="">Select Cashier</option>
-                  {(shopType === 'service' ? serviceCashiers : salesCashiers).map((cashier, index) => (
-                    <option key={index} value={cashier}>
-                      {cashier}
-                    </option>
-                  ))}
-                </select>
-                {(shopType === 'service' ? serviceCashiers : salesCashiers).length === 0 && (
-                  <p className="text-red-500 text-xs mt-1">
-                    No {shopType} cashiers found. Add cashiers in the Add Product page.
-                  </p>
-                )}
-              </div>
+              // In your cashier dropdown, add loading state:
+<div className="space-y-1">
+  <label className="block text-xs font-semibold text-gray-700 mb-1">
+    👨‍💼 Cashier *
+  </label>
+  <select
+    value={customerData.cashier}
+    onChange={(e) => setCustomerData(prev => ({...prev, cashier: e.target.value}))}
+    className="text-gray-800 w-full h-10 border border-gray-300 rounded-lg px-3 focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-200 transition-all duration-200 bg-white"
+    required
+    disabled={stockLoading} // Optional: disable while loading
+  >
+    <option value="">Select Cashier</option>
+    {(shopType === 'service' ? serviceCashiers : salesCashiers).map((cashier, index) => (
+      <option key={index} value={cashier}>
+        {cashier}
+      </option>
+    ))}
+  </select>
+  
+  {/* Show loading or empty state messages */}
+  {stockLoading ? (
+    <p className="text-blue-500 text-xs mt-1">Loading cashiers...</p>
+  ) : (shopType === 'service' ? serviceCashiers : salesCashiers).length === 0 ? (
+    <p className="text-red-500 text-xs mt-1">
+      No {shopType} cashiers found. Add cashiers in the Add Product page.
+    </p>
+  ) : null}
+</div>
 
 {/* GST Number Field - Regular Customer (Optional) */}
 <div className="space-y-1">
@@ -4856,30 +4917,35 @@ return (
 
 
 
-        {/* Cashier Dropdown */}
-        <div className="space-y-1">
-          <label className="block text-xs font-semibold text-gray-700 mb-1">
-            👨‍💼 Cashier *
-          </label>
-          <select
-            value={multiBrandData.cashier}
-            onChange={(e) => setMultiBrandData(prev => ({...prev, cashier: e.target.value}))}
-            className="text-gray-800 w-full h-10 border border-gray-300 rounded-lg px-3 focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-200 transition-all duration-200 bg-white"
-            required
-          >
-            <option value="">Select Cashier</option>
-            {salesCashiers.map((cashier, index) => (
-              <option key={index} value={cashier}>
-                {cashier}
-              </option>
-            ))}
-          </select>
-          {salesCashiers.length === 0 && (
-            <p className="text-red-500 text-xs mt-1">
-              No sales cashiers found. Add cashiers in the Add Product page.
-            </p>
-          )}
-        </div>
+        // In your cashier dropdown, add loading state:
+<div className="space-y-1">
+  <label className="block text-xs font-semibold text-gray-700 mb-1">
+    👨‍💼 Cashier *
+  </label>
+  <select
+    value={customerData.cashier}
+    onChange={(e) => setCustomerData(prev => ({...prev, cashier: e.target.value}))}
+    className="text-gray-800 w-full h-10 border border-gray-300 rounded-lg px-3 focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-200 transition-all duration-200 bg-white"
+    required
+    disabled={stockLoading} // Optional: disable while loading
+  >
+    <option value="">Select Cashier</option>
+    {(shopType === 'service' ? serviceCashiers : salesCashiers).map((cashier, index) => (
+      <option key={index} value={cashier}>
+        {cashier}
+      </option>
+    ))}
+  </select>
+  
+  {/* Show loading or empty state messages */}
+  {stockLoading ? (
+    <p className="text-blue-500 text-xs mt-1">Loading cashiers...</p>
+  ) : (shopType === 'service' ? serviceCashiers : salesCashiers).length === 0 ? (
+    <p className="text-red-500 text-xs mt-1">
+      No {shopType} cashiers found. Add cashiers in the Add Product page.
+    </p>
+  ) : null}
+</div>
 
         {/* GST Number Field - Multi-brand (Optional) */}
         <div className="space-y-1">
@@ -6935,13 +7001,14 @@ Thank you for shopping with us! 🎉`
                   placeholder={`Enter ${shopType === 'service' ? 'service' : 'sales'} cashier name`}
                   className="flex-1 border-2 border-gray-300 rounded-lg px-3 py-3 focus:outline-none focus:border-purple-500 text-black"
                 />
-                <button
-                  type="button"
-                  onClick={addCashier}
-                  className="bg-purple-500 text-white px-6 py-3 rounded-lg hover:bg-purple-600 transition-colors font-semibold"
-                >
-                  ➕ Add Cashier
-                </button>
+<button
+  type="button"
+  onClick={addCashier}
+  disabled={cashierLoading}
+  className="bg-purple-500 text-white px-6 py-3 rounded-lg hover:bg-purple-600 transition-colors font-semibold disabled:bg-gray-400"
+>
+  {cashierLoading ? 'Adding...' : '➕ Add Cashier'}
+</button>
               </div>
 
               {/* Cashier List */}
