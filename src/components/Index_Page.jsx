@@ -137,10 +137,10 @@ export const Index_Page = ({ user, onLogout }) => {
 
     if (whatsappStatus.ready) {
       return (
-        <button
+        <span
           onClick={resetWhatsApp}
           disabled={resetLoading}
-          className="flex items-center space-x-2 bg-green-600 hover:bg-green-700 px-3 py-1 rounded-lg transition-colors disabled:opacity-50"
+          className="flex items-center space-x-2 h-12 bg-black hover:bg-black border border border-black hover:border-green-500 px-3 py-1 rounded-lg transition-colors disabled:opacity-50"
         >
           {resetLoading ? (
             <>
@@ -153,30 +153,30 @@ export const Index_Page = ({ user, onLogout }) => {
               <span className="text-xs font-medium">Reset WhatsApp</span>
             </>
           )}
-        </button>
+        </span>
       );
     }
 
     if (whatsappStatus.sessionExists && !whatsappStatus.ready) {
       return (
-        <button
+        <span
           onClick={openQRPage}
-          className="flex items-center space-x-2 bg-yellow-600 hover:bg-yellow-700 px-3 py-1 rounded-lg transition-colors"
+          className="flex items-center h-12 space-x-2 bg-black hover:bg-black px-3 py-1 rounded-lg transition-colors"
         >
           <span className="text-sm">🔄</span>
           <span className="text-xs font-medium">Reconnect</span>
-        </button>
+        </span>
       );
     }
 
     return (
-      <button
+      <span
         onClick={openQRPage}
-        className="flex items-center space-x-2 bg-blue-600 hover:bg-blue-700 px-3 py-1 rounded-lg transition-colors"
+        className="flex items-center space-x-2 h-12 bg-black hover:bg-black border border border-black hover:border-blue-500 px-3 py-1 rounded-lg transition-colors"
       >
         <span className="text-sm">📱</span>
         <span className="text-xs font-medium">Add WhatsApp</span>
-      </button>
+      </span>
     );
   };
 
@@ -226,7 +226,7 @@ export const Index_Page = ({ user, onLogout }) => {
         </div>
         <button
           onClick={onLogout}
-          className="w-full text-center px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded transition-colors"
+          className="w-full text-center h-12 px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded transition-colors"
         >
           Logout
         </button>

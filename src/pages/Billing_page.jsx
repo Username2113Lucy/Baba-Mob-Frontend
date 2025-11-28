@@ -54,6 +54,16 @@ useEffect(() => {
 
   const [actionStatus, setActionStatus] = useState({});
 
+  // ✅ ADD THIS: Finance company mapping (short code → full name)
+const FINANCE_COMPANIES = {
+  'bajaj': 'Bajaj Finance',
+  'hdfc': 'HDFC Bank', 
+  'icici': 'ICICI Bank',
+  'kotak': 'Kotak Mahindra',
+  'homecredit': 'Home Credit',
+  'other': 'Other Finance'
+};
+
   // Add these to your component state - SEPARATE FOR SALES AND SERVICE
   const [salesOfferMessage, setSalesOfferMessage] = useState('');
   const [serviceOfferMessage, setServiceOfferMessage] = useState('');
@@ -226,9 +236,6 @@ const [dealerPaymentForm, setDealerPaymentForm] = useState({
 
 });
 
-// Add this with your other state variables
-const [stockPassword, setStockPassword] = useState('');
-const STOCK_PASSWORD = 'SaveStock@789';
 
 // Add with your other state variables
 const [dealersPassword, setDealersPassword] = useState('');
@@ -680,27 +687,6 @@ const saveVariants = async (variantsData) => {
     }
   };
 
-  const updateVariant = async (variantId, variantData) => {
-    try {
-      const response = await fetch(`${VARIANT_API}/${variantId}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(variantData)
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      
-      return await response.json();
-    } catch (error) {
-      console.error('Error updating variant:', error);
-      throw error;
-    }
-  };
-
   const deleteVariant = async (variantId) => {
     try {
       const response = await fetch(`${VARIANT_API}/${variantId}`, {
@@ -843,25 +829,6 @@ const saveVariants = async (variantsData) => {
       (v.product && products.find(p => p._id === v.product?._id)?.name === productName)
     );
     return productVariants.reduce((total, variant) => total + (parseInt(variant.quantity) || 0), 0);
-  };
-
-  // Add Product Functions
-  const handleImageUpload = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
-      if (!validTypes.includes(file.type)) {
-        alert('Please select a valid image file (JPEG, JPG, PNG, WEBP)');
-        return;
-      }
-      
-      if (file.size > 5 * 1024 * 1024) {
-        alert('File size should be less than 5MB');
-        return;
-      }
-      
-      setProductForm({...productForm, image: file});
-    }
   };
 
   const addVariant = () => {
@@ -1132,72 +1099,6 @@ const fetchAllCustomers = async (filters = {}) => {
   }
 };
 
-  const fetchFilteredCustomers = async (filters = {}) => {
-    try {
-      const queryParams = new URLSearchParams(filters).toString();
-      const response = await fetch(`${CUSTOMER_API}?${queryParams}`);
-      const result = await response.json();
-      
-      if (result.success) {
-        setCustomers(result.data);
-      } else {
-        throw new Error(result.message);
-      }
-    } catch (error) {
-      console.error('Error fetching customers:', error);
-      alert('Error fetching customers: ' + error.message);
-    }
-  };
-
-  const createCustomer = async (customerData) => {
-    try {
-      const response = await fetch(`${CUSTOMER_API}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          ...customerData,
-          shopType: shopType
-        })
-      });
-
-      const result = await response.json();
-      
-      if (result.success) {
-        return result.data;
-      } else {
-        throw new Error(result.message);
-      }
-    } catch (error) {
-      console.error('Error creating customer:', error);
-      throw error;
-    }
-  };
-
-  const updateCustomerStatus = async (customerId, status) => {
-    try {
-      const response = await fetch(`${CUSTOMER_API}/${customerId}/status`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ status })
-      });
-
-      const result = await response.json();
-      
-      if (result.success) {
-        return result.data;
-      } else {
-        throw new Error(result.message);
-      }
-    } catch (error) {
-      console.error('Error updating status:', error);
-      throw error;
-    }
-  };
-
 // ✅ FIXED: Invoice number generation with proper parsing
 const generateInvoiceNumber = () => {
   const prefix = shopType === 'sales' ? 'B' : 'SV';
@@ -1387,7 +1288,6 @@ const handleAddCustomer = async () => {
     }
   }
 
-
   try {
     const invoiceNumber = generateInvoiceNumber();
 
@@ -1405,6 +1305,12 @@ const handleAddCustomer = async () => {
       return;
     }
 
+    // ✅ FIXED: Store full finance company name in database
+    let financeCompanyFullName = '';
+    if (customerData.paymentMode === 'emi' && customerData.financeCompany) {
+      financeCompanyFullName = FINANCE_COMPANIES[customerData.financeCompany] || customerData.financeCompany;
+    }
+
     // Prepare customer data
     const newCustomer = {
       invoiceNumber: invoiceNumber,
@@ -1417,7 +1323,7 @@ const handleAddCustomer = async () => {
       model: customerData.model || '',
       password: customerData.password || '',
       paymentMode: validPaymentMode, // ✅ Now this will never be empty
-      financeCompany: customerData.paymentMode === 'emi' ? customerData.financeCompany : '',
+      financeCompany: financeCompanyFullName, // ✅ Store full name in database
       warrantyDays: parseInt(customerData.warrantyDays) || 0,
       imei: customerData.imei || '',
       cashier: customerData.cashier,
@@ -2128,74 +2034,6 @@ const handleVariantSaveClick = async (variantId, e) => {
   }
 };
 
-// Update the handlePriceChange function
-const handlePriceChange = async (variantId, newPrice) => {
-  if (newPrice < 0) return;
-  
-  try {
-    const response = await fetch(`${VARIANT_API}/${variantId}`, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        price: newPrice // Use 'price' not 'sellingPrice'
-      })
-    });
-
-    const result = await response.json();
-
-    if (result.success) {
-      setVariants(prevVariants => 
-        prevVariants.map(variant => 
-          variant._id === variantId 
-            ? { ...variant, sellingPrice: newPrice.toString() } // Keep local state as sellingPrice
-            : variant
-        )
-      );
-    } else {
-      alert(`Failed to update price: ${result.message}`);
-    }
-  } catch (error) {
-    console.error('Error updating price:', error);
-    alert('Error updating price');
-  }
-};
-
-  // Handle quantity change for variants
-  const handleQuantityChange = async (variantId, newQuantity) => {
-    if (newQuantity < 0) return;
-    
-    try {
-      const response = await fetch(`${VARIANT_API}/${variantId}`, { 
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          quantity: newQuantity
-        })
-      });
-
-      const result = await response.json();
-
-      if (result.success) {
-        setVariants(prevVariants => 
-          prevVariants.map(variant => 
-            variant._id === variantId 
-              ? { ...variant, quantity: newQuantity.toString() }
-              : variant
-          )
-        );
-      } else {
-        alert(`Failed to update quantity: ${result.message}`);
-      }
-    } catch (error) {
-      console.error('Error updating quantity:', error);
-      alert('Error updating quantity');
-    }
-  };
-
   // Add this function to group customers by date and calculate daily totals
   const getCustomersWithDailyTotals = () => {
     if (customers.length === 0) return [];
@@ -2386,83 +2224,6 @@ const handleReturnStatus = async (customerId) => {
     }
   };
 
-  // Update the fetchStockItems function
-  const fetchStockItems = async (variantId) => {
-    try {
-      console.log('Fetching stock items for variant:', variantId);
-      const response = await fetch(`${STOCK_API}/variant/${variantId}`);
-      
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      
-      const result = await response.json();
-      if (result.success) {
-        console.log('Stock items fetched:', result.data);
-        setStockItems(result.data);
-      } else {
-        throw new Error(result.message);
-      }
-    } catch (error) {
-      console.error('Error fetching stock items:', error);
-      alert('Error fetching stock items: ' + error.message);
-    }
-  };
-
-  // Update the bulk stock form to use dealer IDs properly
-  const handleAddBulkStock = async (variantId) => {
-    try {
-      // Validate that we have selected dealers
-      const invalidItems = bulkStockForm.filter(item => !item.dealer || item.dealer === '');
-      if (invalidItems.length > 0) {
-        alert('Please select a dealer for all stock items');
-        return;
-      }
-
-      const stockItemsToSave = bulkStockForm
-        .map(item => ({
-          imei: item.imei.trim(),
-          dealerId: item.dealer,
-          cost: parseFloat(item.cost) || 0,
-          hsn: item.hsn.trim(),
-          variantId: variantId,
-          productId: selectedProduct._id,
-          shopType: shopType
-        }))
-        .filter(item => item.imei && item.dealerId && item.cost > 0);
-
-      if (stockItemsToSave.length === 0) {
-        alert('Please fill at least one complete stock item (IMEI, Dealer, and Cost)');
-        return;
-      }
-
-      console.log('Saving stock items:', stockItemsToSave);
-
-      const response = await fetch(`${STOCK_API}/bulk`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ stockItems: stockItemsToSave })
-      });
-
-      const result = await response.json();
-      
-      if (result.success) {
-        alert(`✅ Successfully added ${result.data.length} stock items!`);
-        setBulkStockForm([{ imei: '', dealer: '', cost: '', hsn: '' }]);
-        await fetchStockItems(variantId);
-        
-        if (result.errors && result.errors.length > 0) {
-          alert(`⚠️ Some items had issues:\n${result.errors.join('\n')}`);
-        }
-      } else {
-        alert('❌ Error adding stock items: ' + (result.message || 'Unknown error'));
-      }
-    } catch (error) {
-      console.error('Error adding bulk stock:', error);
-      alert('❌ Error adding stock items: ' + error.message);
-    }
-  };
-
   // Fetch dealers with financial data
   const fetchDealers = async () => {
     try {
@@ -2516,42 +2277,6 @@ const handleReturnStatus = async (customerId) => {
     } catch (error) {
       console.error('Error saving dealer:', error);
       alert('Error saving dealer');
-    }
-  };
-
-  // Edit dealer
-  const editDealer = (dealer) => {
-    setDealerForm({
-      name: dealer.name,
-      contact: dealer.contact,
-      address: dealer.address,
-      gstNumber: dealer.gstNumber || '',
-    });
-    setEditingDealer(dealer);
-  };
-
-  // Delete dealer
-  const deleteDealer = async (dealerId, dealerName) => {
-    if (!window.confirm(`Are you sure you want to delete dealer "${dealerName}"?`)) {
-      return;
-    }
-
-    try {
-      const response = await fetch(`${DEALERS_API}/${dealerId}`, {
-        method: 'DELETE'
-      });
-
-      const result = await response.json();
-      
-      if (result.success) {
-        alert('Dealer deleted successfully!');
-        fetchDealers();
-      } else {
-        alert(`Error: ${result.message}`);
-      }
-    } catch (error) {
-      console.error('Error deleting dealer:', error);
-      alert('Error deleting dealer');
     }
   };
 
@@ -2651,22 +2376,6 @@ const handleDealerSelectForPayment = (dealerId) => {
   }
 };
 
-  // Fetch dealer transactions
-  const fetchDealerTransactions = async (dealerId) => {
-    try {
-      const response = await fetch(`${DEALERS_API}/${dealerId}/transactions`);
-      const result = await response.json();
-      
-      if (result.success) {
-        return result.data;
-      }
-      return [];
-    } catch (error) {
-      console.error('Error fetching dealer transactions:', error);
-      return [];
-    }
-  };
-
 // ✅ CALCULATE DEALER BALANCE INFO (Frontend only)
 const getDealerBalanceInfo = (dealer) => {
   const dealerStockItems = stockItems.filter(item => item.dealer?._id === dealer._id);
@@ -2690,30 +2399,6 @@ const getDealerBalanceInfo = (dealer) => {
     balance
   };
 };
-
-
-  // Auto-create dealer transactions from existing stock items
-  const autoCreateDealerTransactions = async (dealerId) => {
-    try {
-      const response = await fetch(`${DEALERS_API}/${dealerId}/auto-create-transactions`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' }
-      });
-
-      const result = await response.json();
-      
-      if (result.success) {
-        alert(`✅ Auto-created transactions for ${result.data.stockItemsCount} stock items!`);
-        alert(`💰 Total stock value with GST: ₹${result.data.totalAmount.toFixed(2)}`);
-        fetchDealers();
-      } else {
-        alert(`❌ Error: ${result.message}`);
-      }
-    } catch (error) {
-      console.error('Error auto-creating dealer transactions:', error);
-      alert('❌ Error auto-creating transactions');
-    }
-  };
 
   // Update the useEffect for dealers tab
   useEffect(() => {
@@ -2844,11 +2529,17 @@ const handleAddMultiBrandCustomer = async () => {
     return;
   }
 
-    try {
+  try {
     const invoiceNumber = generateMultiBrandInvoiceNumber();
     
     // ✅ FIX: Ensure paymentMode has a valid value
     const validPaymentMode = multiBrandData.paymentMode || 'cash';
+
+    // ✅ FIXED: Store full finance company name in database
+    let financeCompanyFullName = '';
+    if (multiBrandData.paymentMode === 'emi' && multiBrandData.financeCompany) {
+      financeCompanyFullName = FINANCE_COMPANIES[multiBrandData.financeCompany] || multiBrandData.financeCompany;
+    }
 
     const customerData = {
       invoiceNumber: invoiceNumber,
@@ -2862,7 +2553,7 @@ const handleAddMultiBrandCustomer = async () => {
       model: multiBrandData.model || '',
       imei: multiBrandData.imei || '',
       paymentMode: validPaymentMode,
-      financeCompany: multiBrandData.financeCompany || '',
+      financeCompany: financeCompanyFullName, // ✅ Store full name in database
       gstNumber: multiBrandData.gstNumber || '',
       billType: 'multi-brand',
       date: new Date().toISOString()
@@ -2933,6 +2624,15 @@ const handleAddMultiBrandCustomer = async () => {
     console.error('❌ Error creating multi-brand customer:', error);
     alert(`Error: ${error.message}`);
   }
+};
+
+// ✅ ADD THIS: Helper function to get short code from full name
+const getFinanceCompanyShortCode = (fullName) => {
+  if (!fullName) return '';
+  
+  // Find the short code from the full name
+  const entry = Object.entries(FINANCE_COMPANIES).find(([code, name]) => name === fullName);
+  return entry ? entry[0].toUpperCase() : fullName.substring(0, 4).toUpperCase();
 };
 
 // Handle multi-brand warranty days change
@@ -3184,20 +2884,6 @@ const calculateMultiBrandSummary = () => {
 };
 
 const multiBrandSummary = calculateMultiBrandSummary();
-
-const getNextMultiBrandInvoiceNumber = () => {
-  if (multiBrandCustomers.length === 0) {
-    return 1;
-  }
-  
-  const invoiceNumbers = multiBrandCustomers.map(customer => {
-    const invoiceStr = customer.invoiceNumber.replace('M', '');
-    return parseInt(invoiceStr) || 0;
-  });
-  
-  const maxInvoiceNumber = Math.max(...invoiceNumbers);
-  return maxInvoiceNumber + 1;
-};
 
 // ✅ UPDATED: Multi-brand invoice number with custom jump condition
 const generateMultiBrandInvoiceNumber = () => {
@@ -3575,71 +3261,6 @@ const handleSaveStockItems = async () => {
   }
 };
 
-
-// ✅ ENHANCED: Auto-fill with better data handling
-const handleImeiSelect = (selectedImei, formType = 'regular') => {
-  if (!selectedImei) return;
-  
-  console.log('🔄 Auto-filling for IMEI:', selectedImei);
-  
-  const stockItem = stockItems.find(item => item.imei === selectedImei);
-  console.log('📦 Found stock item:', stockItem);
-  
-  if (stockItem) {
-    let brand = '';
-    let model = '';
-    
-    // Method 1: Check if variant data is populated in stockItem
-    if (stockItem.variant) {
-      console.log('✅ Using populated variant data');
-      brand = stockItem.variant.productName || stockItem.variant.product?.name || '';
-      model = stockItem.variant.variantName || '';
-    }
-    // Method 2: Find variant by variantId
-    else if (stockItem.variantId) {
-      console.log('🔍 Finding variant by ID:', stockItem.variantId);
-      const variant = variants.find(v => v._id === stockItem.variantId);
-      console.log('📱 Found variant:', variant);
-      if (variant) {
-        brand = variant.productName || variant.product?.name || '';
-        model = variant.variantName || '';
-      }
-    }
-    // Method 3: Find by productId and variantName (fallback)
-    else if (stockItem.productId && stockItem.variantName) {
-      console.log('🔄 Fallback: Using productId and variantName');
-      const product = products.find(p => p._id === stockItem.productId);
-      if (product) {
-        brand = product.name;
-        model = stockItem.variantName;
-      }
-    }
-    
-    console.log('🎯 Auto-fill result:', { brand, model });
-    
-    if (brand && model) {
-      if (formType === 'multiBrand') {
-        setMultiBrandData(prev => ({
-          ...prev,
-          brand,
-          model
-        }));
-      } else {
-        setCustomerData(prev => ({
-          ...prev,
-          brand,
-          model
-        }));
-      }
-      console.log('✅ Auto-fill successful!');
-    } else {
-      console.log('❌ Auto-fill failed - missing brand or model');
-    }
-  } else {
-    console.log('❌ Stock item not found for IMEI:', selectedImei);
-  }
-};
-
 // ✅ FIXED: DealerAlertSection with forced refresh
 const DealerAlertSection = ({ dealer, onAlertSet, onAlertReset }) => {
   const [alertDate, setAlertDate] = useState('');
@@ -3768,28 +3389,32 @@ const DealerAlertSection = ({ dealer, onAlertSet, onAlertReset }) => {
       />
       
       <div className="flex gap-1 w-full no-expand">
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            handleSetAlert();
-          }}
-          disabled={loading || !alertDate}
-          className="flex-1 bg-green-500 text-white px-2 py-1 rounded text-xs hover:bg-green-600 disabled:bg-gray-400 disabled:cursor-not-allowed no-expand"
-        >
-          {loading ? '...' : 'Set'}
-        </button>
-        
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            handleResetAlert();
-          }}
-          disabled={loading}
-          className="flex-1 bg-red-500 text-white px-2 py-1 rounded text-xs hover:bg-red-600 disabled:bg-gray-400 disabled:cursor-not-allowed no-expand"
-        >
-          {loading ? '...' : 'Reset'}
-        </button>
-      </div>
+  <span
+    onClick={(e) => {
+      e.stopPropagation();
+      handleSetAlert();
+    }}
+    className={`flex-1 h-10 bg-black hover:bg-gray-700 border border-black hover:border-green-500 text-white flex items-center justify-center px-2 py-1 rounded-lg text-lg transition-all duration-200 cursor-pointer font-medium no-expand ${
+      loading || !alertDate ? 'opacity-50 cursor-not-allowed' : ''
+    }`}
+    style={loading || !alertDate ? { pointerEvents: 'none' } : {}}
+  >
+    {loading ? '...' : 'Set'}
+  </span>
+  
+  <span
+    onClick={(e) => {
+      e.stopPropagation();
+      handleResetAlert();
+    }}
+    className={`flex-1 h-10 bg-black hover:bg-gray-700 border border-black hover:border-red-500 text-white flex items-center justify-center px-2 py-1 rounded-lg text-lg transition-all duration-200 cursor-pointer font-medium no-expand ${
+      loading ? 'opacity-50 cursor-not-allowed' : ''
+    }`}
+    style={loading ? { pointerEvents: 'none' } : {}}
+  >
+    {loading ? '...' : 'Reset'}
+  </span>
+</div>
 
       {/* ✅ Alert Status Display */}
       {isAlertRecentlySent ? (
@@ -4550,23 +4175,23 @@ return (
       </div>
     )}
     
-    {/* Selected payment mode display */}
-    {customerData.paymentMode && (
-      <div className="mt-2 p-2 bg-white rounded border border-gray-300">
-        <span className="text-sm font-semibold text-gray-900">
-          Selected: 
-          <span className={`ml-2 ${
-            customerData.paymentMode === 'cash' ? 'text-green-600' : 
-            customerData.paymentMode === 'gpay' ? 'text-blue-600' : 
-            'text-purple-600'
-          }`}>
-            {customerData.paymentMode === 'cash' ? '💵 Cash Payment' : 
-             customerData.paymentMode === 'gpay' ? '📱 Google Pay' : 
-             `🏦 EMI-${customerData.financeCompany ? customerData.financeCompany.toUpperCase() : '[Select Company]'}`}
-          </span>
-        </span>
-      </div>
-    )}
+{/* Selected payment mode display */}
+{customerData.paymentMode && (
+  <div className="mt-2 p-2 bg-white rounded border border-gray-300">
+    <span className="text-sm font-semibold text-gray-900">
+      Selected: 
+      <span className={`ml-2 ${
+        customerData.paymentMode === 'cash' ? 'text-green-600' : 
+        customerData.paymentMode === 'gpay' ? 'text-blue-600' : 
+        'text-purple-600'
+      }`}>
+        {customerData.paymentMode === 'cash' ? '💵 Cash Payment' : 
+         customerData.paymentMode === 'gpay' ? '📱 Google Pay' : 
+         `🏦 EMI-${customerData.financeCompany ? customerData.financeCompany.toUpperCase() : '[Select Company]'}`}
+      </span>
+    </span>
+  </div>
+)}
   </div>
 )}
 
@@ -5045,30 +4670,23 @@ return (
           </div>
 
           {/* ✅ ADDED: EMI Finance Company for Multi-brand */}
-          {multiBrandData.paymentMode === 'emi' && (
-            <div className="mt-4 p-4 bg-purple-50 border border-purple-200 rounded-lg">
-              <label className="block text-sm font-semibold text-purple-800 mb-2">
-                🏢 Select Finance Company *
-              </label>
-              <select
-                value={multiBrandData.financeCompany || ''}
-                onChange={(e) => setMultiBrandData(prev => ({...prev, financeCompany: e.target.value}))}
-                className="text-gray-800 w-full border border-purple-300 rounded-lg px-3 py-2 focus:outline-none focus:border-purple-500 bg-white"
-                required
-              >
-                <option value="">Select Finance Company</option>
-                <option value="bajaj">Bajaj Finance</option>
-                <option value="hdfc">HDFC Bank</option>
-                <option value="icici">ICICI Bank</option>
-                <option value="kotak">Kotak Mahindra</option>
-                <option value="homecredit">Home Credit</option>
-                <option value="other">Other Finance</option>
-              </select>
-              <p className="text-xs text-purple-600 mt-2">
-                Selected payment will show as: EMI-{multiBrandData.financeCompany ? multiBrandData.financeCompany.toUpperCase() : '[Company]'}
-              </p>
-            </div>
-          )}
+          {/* Selected payment mode display for Multi-brand */}
+{multiBrandData.paymentMode && (
+  <div className="mt-2 p-2 bg-white rounded border border-gray-300">
+    <span className="text-sm font-semibold text-gray-900">
+      Selected: 
+      <span className={`ml-2 ${
+        multiBrandData.paymentMode === 'cash' ? 'text-green-600' : 
+        multiBrandData.paymentMode === 'gpay' ? 'text-blue-600' : 
+        'text-purple-600'
+      }`}>
+        {multiBrandData.paymentMode === 'cash' ? '💵 Cash Payment' : 
+         multiBrandData.paymentMode === 'gpay' ? '📱 Google Pay' : 
+         `🏦 EMI-${multiBrandData.financeCompany ? multiBrandData.financeCompany.toUpperCase() : '[Select Company]'}`}
+      </span>
+    </span>
+  </div>
+)}
         </div>
 
         <div className="md:col-span-2 flex justify-end pt-2">
@@ -5217,26 +4835,26 @@ return (
                     min="0"
                   />
                 </td>
-                <td className="border border-gray-200 px-3 py-2 whitespace-nowrap w-40">
-                  <div className="flex justify-center items-center">
-                    <div className={`inline-flex items-center px-3 py-1 rounded-md text-xs font-medium ${
-                      customer.paymentMode === 'cash' 
-                        ? 'bg-green-50 text-green-700 border-l-4 border-green-500' :
-                      customer.paymentMode === 'gpay' 
-                        ? 'bg-blue-50 text-blue-700 border-l-4 border-blue-500' :
-                      'bg-purple-50 text-purple-700 border-l-4 border-purple-500'
-                    }`}>
-                      <div className={`w-2 h-2 rounded-full mr-2 animate-pulse ${
-                        customer.paymentMode === 'cash' ? 'bg-green-500' : 
-                        customer.paymentMode === 'gpay' ? 'bg-blue-500' : 
-                        'bg-purple-500'
-                      }`}></div>
-                      {customer.paymentMode === 'cash' ? 'Cash' : 
-                       customer.paymentMode === 'gpay' ? 'Gpay' : 
-                       `EMI-${customer.financeCompany ? customer.financeCompany.toUpperCase() : 'N/A'}`}
-                    </div>
-                  </div>
-                </td>
+<td className="border border-gray-200 px-3 py-2 whitespace-nowrap w-40">
+  <div className="flex justify-center items-center">
+    <div className={`inline-flex items-center px-3 py-1 rounded-md text-xs font-medium ${
+      customer.paymentMode === 'cash' 
+        ? 'bg-green-50 text-green-700 border-l-4 border-green-500' :
+      customer.paymentMode === 'gpay' 
+        ? 'bg-blue-50 text-blue-700 border-l-4 border-blue-500' :
+      'bg-purple-50 text-purple-700 border-l-4 border-purple-500'
+    }`}>
+      <div className={`w-2 h-2 rounded-full mr-2 animate-pulse ${
+        customer.paymentMode === 'cash' ? 'bg-green-500' : 
+        customer.paymentMode === 'gpay' ? 'bg-blue-500' : 
+        'bg-purple-500'
+      }`}></div>
+      {customer.paymentMode === 'cash' ? 'Cash' : 
+       customer.paymentMode === 'gpay' ? 'Gpay' : 
+       `EMI-${getFinanceCompanyShortCode(customer.financeCompany)}`} {/* ✅ Use short code here */}
+    </div>
+  </div>
+</td>
                 <td className="border border-gray-200 px-3 py-2 font-semibold whitespace-nowrap text-green-600 text-base">
                   ₹{customer.cost.toFixed(2)}
                 </td>
@@ -5244,31 +4862,31 @@ return (
                   <div className="flex items-center gap-2">
                     <div className="flex gap-1">
                       {/* Print Button */}
-                      <button
+                      <span
                         onClick={() => handleMultiBrandAction(customer, 'print')}
-                        className="bg-blue-500 text-white px-2 py-1 rounded text-xs hover:bg-blue-600 transition-all duration-200 font-semibold shadow hover:shadow-sm flex items-center gap-1"
+                        className="w-15 h-10 bg-black hover:bg-black border border-black justify-center rounded-lg text-xl hover:border-blue-500 text-white px-2 py-1 transition-all duration-200 font-semibold shadow hover:shadow-sm flex items-center gap-1"
                         title="Print Multi-brand Bill"
                       >
-                        🖨️
-                      </button>
+                        🖨️ 
+                      </span>
                       
                       {/* Download Button */}
-                      <button
+                      <span
                         onClick={() => handleMultiBrandAction(customer, 'download')}
-                        className="bg-green-500 text-white px-2 py-1 rounded text-xs hover:bg-green-600 transition-all duration-200 font-semibold shadow hover:shadow-sm flex items-center gap-1"
+                        className="w-15 h-10 bg-black hover:bg-black border border-black justify-center rounded-lg text-xl  text-white px-2 py-1   transition-all duration-200 font-semibold shadow hover:shadow-sm flex items-center gap-1"
                         title="Download PDF"
                       >
                         ⬇️
-                      </button>
+                      </span>
                       
                       {/* WhatsApp Button */}
-                      <button
+                      <span
                         onClick={() => handleMultiBrandWhatsApp(customer)}
-                        className="bg-green-600 text-white px-2 py-1 rounded text-xs hover:bg-green-700 transition-all duration-200 font-semibold shadow hover:shadow-sm flex items-center gap-1"
+                        className="w-15 h-10 bg-black hover:bg-black border border-black justify-center rounded-lg text-xl  text-white px-2 py-1  transition-all duration-200 font-semibold shadow hover:shadow-sm flex items-center gap-1"
                         title="Send via WhatsApp"
                       >
                         ✅
-                      </button>
+                      </span>
                     </div>
                     {multiBrandActionStatus[customer.invoiceNumber] && (
                       <span className="text-xs text-gray-600 ml-1 bg-gray-100 px-2 py-1 rounded-full">
@@ -5325,28 +4943,28 @@ return (
               
               {/* Tabs for Sales Shop Type */}
               {shopType === 'sales' && (
-                <div className="flex bg-gray-100 rounded-lg p-1">
-                  <button
-                    onClick={() => setSalesFilterTab('customer')}
-                    className={`px-4 py-2 rounded-md text-sm font-semibold transition-all duration-200 ${
-                      salesFilterTab === 'customer'
-                        ? 'bg-orange-500 text-white shadow-sm'
-                        : 'text-gray-300 hover:text-orange-600'
-                    }`}
-                  >
-                    👤 Customer Records
-                  </button>
-                  <button
-                    onClick={() => setSalesFilterTab('stock')}
-                    className={`px-4 py-2 rounded-md text-sm font-semibold transition-all duration-200 ${
-                      salesFilterTab === 'stock'
-                        ? 'bg-orange-500 text-white shadow-sm'
-                        : 'text-gray-300 hover:text-orange-600'
-                    }`}
-                  >
-                    📦 Stock Records
-                  </button>
-                </div>
+<div className="flex bg-gray-100 rounded-lg p-1 gap-0.5">
+  <span
+    onClick={() => setSalesFilterTab('customer')}
+    className={`px-4 py-2  rounded-md text-sm font-semibold transition-all duration-200 cursor-pointer ${
+      salesFilterTab === 'customer'
+        ? 'bg-black text-white shadow-sm'
+        : 'text-black bg-black/10 hover:text-orange-600'
+    }`}
+  >
+    👤 Customer Records
+  </span>
+  <span
+    onClick={() => setSalesFilterTab('stock')}
+    className={`px-4 py-2 rounded-md text-sm font-semibold transition-all duration-200 cursor-pointer ${
+      salesFilterTab === 'stock'
+        ? 'bg-black text-white shadow-sm'
+        : 'text-black bg-black/10 hover:text-orange-600'
+    }`}
+  >
+    📦 Stock Records
+  </span>
+</div>
               )}
             </div>
             
@@ -5677,33 +5295,33 @@ return (
             <div className="flex gap-3 mt-4 justify-end">
               {shopType === 'sales' && salesFilterTab === 'stock' ? (
                 <>
-                  <button
-                    onClick={handleApplyStockFilter}
-                    className="bg-gradient-to-r from-orange-600 to-amber-600 text-white px-4 py-2 rounded-lg hover:from-orange-700 hover:to-amber-700 transition-all duration-300 font-semibold text-sm shadow hover:shadow-md flex items-center gap-1"
-                  >
-                    <span>🔍 Apply Stock Filter</span>
-                  </button>
-                  <button
-                    onClick={handleResetStockFilter}
-                    className="bg-gradient-to-r from-gray-500 to-gray-600 text-white px-4 py-2 rounded-lg hover:from-gray-600 hover:to-gray-700 transition-all duration-300 font-semibold text-sm shadow hover:shadow-md flex items-center gap-1"
-                  >
-                    <span>🔄 Reset Stock Filter</span>
-                  </button>
+<span
+  onClick={handleApplyStockFilter}
+  className="bg-gradient-to-r from-orange-600 to-amber-600 text-white px-4 py-2 rounded-lg hover:from-orange-700 hover:to-amber-700 transition-all duration-300 font-semibold text-md shadow hover:shadow-md flex items-center gap-1 cursor-pointer"
+>
+  <span>🔍 Apply Stock Filter</span>
+</span>
+<span
+  onClick={handleResetStockFilter}
+  className="bg-gradient-to-r from-gray-500 to-gray-600 text-white px-4 py-2 rounded-lg hover:from-gray-600 hover:to-gray-700 transition-all duration-300 font-semibold text-md shadow hover:shadow-md flex items-center gap-1 cursor-pointer"
+>
+  <span>🔄 Reset Stock Filter</span>
+</span>
                 </>
               ) : (
                 <>
-                  <button
+                  <span
                     onClick={handleApplyFilter}
-                    className="bg-gradient-to-r from-orange-600 to-amber-600 text-white px-4 py-2 rounded-lg hover:from-orange-700 hover:to-amber-700 transition-all duration-300 font-semibold text-sm shadow hover:shadow-md flex items-center gap-1"
+                    className="bg-gradient-to-r from-orange-600 to-amber-600 text-white px-4 py-2 rounded-lg hover:from-orange-700 hover:to-amber-700 transition-all duration-300 font-semibold text-md shadow hover:shadow-md flex items-center gap-1"
                   >
                     <span>🔍 Apply Filter</span>
-                  </button>
-                  <button
+                  </span>
+                  <span
                     onClick={handleResetFilter}
-                    className="bg-gradient-to-r from-gray-500 to-gray-600 text-white px-4 py-2 rounded-lg hover:from-gray-600 hover:to-gray-700 transition-all duration-300 font-semibold text-sm shadow hover:shadow-md flex items-center gap-1"
+                    className="bg-gradient-to-r from-gray-500 to-gray-600 text-white px-4 py-2 rounded-lg hover:from-gray-600 hover:to-gray-700 transition-all duration-300 font-semibold text-md shadow hover:shadow-md flex items-center gap-1"
                   >
                     <span>🔄 Reset</span>
-                  </button>
+                  </span>
                 </>
               )}
             </div>
@@ -5764,12 +5382,12 @@ return (
       <>
         {/* Lock Button */}
         <div className="flex justify-end">
-          <button
+          <span
             onClick={() => lockSection(`${shopType}ItemPage`)}
-            className="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors font-semibold flex items-center gap-2 shadow-lg"
+            className="bg-black h-12 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors font-semibold flex items-center gap-2 shadow-lg"
           >
             🔒 Lock Items
-          </button>
+          </span>
         </div>
 
             {/* Stock Management Section */}
@@ -5781,15 +5399,15 @@ return (
                     📦 {shopType === 'service' ? 'Stock Management' : 'Product Management'}
                   </h2>
                 </div>
-                <button
+                <span
                   onClick={() => {
                     setActiveTab('addProduct');
                     localStorage.setItem('activeTab', 'addProduct');
                   }}
-                  className="bg-orange-500 text-white px-3 py-2 rounded-lg hover:bg-orange-600 transition-colors font-semibold flex items-center gap-2 text-sm"
+                  className="bg-black text-white px-3 py-2 rounded-lg hover:bg-gray-700 transition-colors font-semibold flex items-center gap-2 text-lg"
                 >
                   <span>➕ Add {shopType === 'service' ? 'Product' : 'Brand'}</span>
-                </button>
+                </span>
               </div>
 
               {stockLoading ? (
@@ -5957,33 +5575,33 @@ if (shopType === 'sales') {
                                   </div>
                                 </div>
                                 
-                                <div className="flex flex-col items-center gap-1 bg-transparent">
-                                  <button
-                                    onClick={(e) => handleDeleteProduct(product._id, product.name)}
-                                    className="text-red-500 hover:text-red-700 transition-colors"
-                                    title="Delete Product"
-                                  >
-                                    🗑️
-                                  </button>
+<div className="flex flex-col items-center gap-1 bg-transparent">
+  <span
+    onClick={(e) => handleDeleteProduct(product._id, product.name)}
+    className="h-12 w-15 bg-black hover:bg-gray-700 border border-black hover:border-red-500 text-white flex items-center justify-center rounded-lg text-xl transition-all duration-200 cursor-pointer"
+    title="Delete Product"
+  >
+    🗑️
+  </span>
 
-                                  {editingProduct === product._id ? (
-                                    <button
-                                      onClick={(e) => handleSaveProductClick(product._id, e)}
-                                      className="text-green-500 hover:text-green-700 transition-colors"
-                                      title="Save Changes"
-                                    >
-                                      💾
-                                    </button>
-                                  ) : (
-                                    <button
-                                      onClick={(e) => handleEditProductClick(product, e)}
-                                      className="text-blue-500 hover:text-blue-700 transition-colors"
-                                      title="Edit Product Name"
-                                    >
-                                      📝
-                                    </button>
-                                  )}
-                                </div>
+  {editingProduct === product._id ? (
+    <span
+      onClick={(e) => handleSaveProductClick(product._id, e)}
+      className="h-12 w-15 bg-black hover:bg-gray-700 border border-black hover:border-green-500 text-white flex items-center justify-center rounded-lg text-xl transition-all duration-200 cursor-pointer"
+      title="Save Changes"
+    >
+      💾
+    </span>
+  ) : (
+    <span
+      onClick={(e) => handleEditProductClick(product, e)}
+      className="h-12 w-15 bg-black hover:bg-gray-700 border border-black hover:border-blue-500 text-white flex items-center justify-center rounded-lg text-xl transition-all duration-200 cursor-pointer"
+      title="Edit Product Name"
+    >
+      📝
+    </span>
+  )}
+</div>
                               </div>
                             </div>
                           );
@@ -6174,35 +5792,34 @@ if (shopType === 'sales') {
                                       </div>
                                     </div>
 
-                                    {/* Right Section - Action Buttons */}
-                                    <div className="flex flex-col items-end gap-4 w-1/4 mr-2">
-                                      <button
-                                        onClick={(e) => handleDeleteVariant(variant._id, variant.variantName)}
-                                        className="text-red-500 hover:text-red-700 transition-colors"
-                                        title={`Delete ${shopType === 'service' ? 'Variant' : 'Model'}`}
-                                      >
-                                        🗑️
-                                      </button>
-                                      {editingVariant === variant._id ? (
-                                        <button
-                                          onClick={(e) => handleVariantSaveClick(variant._id, e)}
-                                          className="text-green-500 hover:text-green-700 transition-colors"
-                                          title="Save Changes"
-                                        >
-                                          💾
-                                        </button>
-                                      ) : (
-                                        <button
-                                          onClick={(e) => handleVariantEditClick(variant, e)}
-                                          className="text-blue-500 hover:text-blue-700 transition-colors"
-                                          title={`Edit ${shopType === 'service' ? 'Variant' : 'Model'}`}
-                                        >
-                                          📝
-                                        </button>
-                                      )}
-                                      
-
-                                    </div>
+{/* Right Section - Action Buttons */}
+<div className="flex flex-col items-end gap-4 w-1/4 mr-2">
+  <span
+    onClick={(e) => handleDeleteVariant(variant._id, variant.variantName)}
+    className="h-12 w-15 bg-black hover:bg-gray-700 border border-black hover:border-red-500 text-white flex items-center justify-center rounded-lg text-xl transition-all duration-200 cursor-pointer"
+    title={`Delete ${shopType === 'service' ? 'Variant' : 'Model'}`}
+  >
+    🗑️
+  </span>
+  
+  {editingVariant === variant._id ? (
+    <span
+      onClick={(e) => handleVariantSaveClick(variant._id, e)}
+      className="h-12 w-15 bg-black hover:bg-gray-700 border border-black hover:border-green-500 text-white flex items-center justify-center rounded-lg text-xl transition-all duration-200 cursor-pointer"
+      title="Save Changes"
+    >
+      💾
+    </span>
+  ) : (
+    <span
+      onClick={(e) => handleVariantEditClick(variant, e)}
+      className="h-12 w-15 bg-black hover:bg-gray-700 border border-black hover:border-blue-500 text-white flex items-center justify-center rounded-lg text-xl transition-all duration-200 cursor-pointer"
+      title={`Edit ${shopType === 'service' ? 'Variant' : 'Model'}`}
+    >
+      📝
+    </span>
+  )}
+</div>
                                   </div>
 
 
@@ -6336,15 +5953,15 @@ if (shopType === 'sales') {
                     ➕ Add New {shopType === 'service' ? 'Brand' : 'Product'}
                   </h2>
                 </div>
-                <button
+                <span
                   onClick={() => {
                     setActiveTab('items');
                     localStorage.setItem('activeTab', 'items');
                   }}
-                  className="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600 transition-colors font-semibold"
+                  className="bg-black text-white px-4 py-2 rounded-lg hover:bg-gray-600 transition-colors font-semibold"
                 >
                   ← Back to {shopType === 'service' ? 'Stock' : 'Products'}
-                </button>
+                </span>
               </div>
 
               <form onSubmit={handleSaveProductForm}>
@@ -6386,13 +6003,13 @@ if (shopType === 'sales') {
                 <h3 className="text-lg font-semibold text-gray-800">
                   Add {shopType === 'service' ? 'Stocks' : 'Models'}
                 </h3>
-                <button
+                <span
                   onClick={addVariant}
-                  className="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 transition-colors font-semibold flex items-center gap-2"
+                  className="bg-black h-12 text-white px-4 py-2 rounded-lg hover:bg-gray-700  transition-colors font-semibold flex items-center gap-2"
                   disabled={products.length === 0}
                 >
                   <span>+ Add {shopType === 'service' ? 'Stock' : 'Model'}</span>
-                </button>
+                </span>
               </div>
 
               {products.length === 0 && (
@@ -6408,13 +6025,12 @@ if (shopType === 'sales') {
                       <div className="flex justify-between items-center mb-4">
                         <h4 className="font-semibold text-gray-800">{shopType === 'service' ? 'Stock' : 'Model'} {index + 1}</h4>
                         {productVariants.length > 1 && (
-                          <button
-                            type="button"
-                            onClick={() => removeVariant(variant.id)}
-                            className="text-red-500 hover:text-red-700 text-sm"
-                          >
-                            Remove
-                          </button>
+<span
+  onClick={() => removeVariant(variant.id)}
+  className="h-12 w-25 bg-black hover:bg-gray-700 border border-black hover:border-red-500 text-red-500 flex items-center justify-center rounded-lg transition-all duration-200 cursor-pointer text-md font-medium"
+>
+  Remove
+</span>
                         )}
                       </div>
                       
@@ -6531,13 +6147,13 @@ if (shopType === 'sales') {
                 </div>
                 
                 <div className="flex justify-end mt-6">
-                  <button
+                  <span
                     type="submit"
-                    className="bg-orange-500 text-white px-6 py-2 rounded-lg hover:bg-orange-600 transition-colors font-semibold disabled:bg-gray-400"
+                    className="bg-black text-white px-6 py-2 rounded-lg hover:bg-gray-700 transition-colors font-semibold disabled:bg-gray-400"
                     disabled={products.length === 0 || savingVariants}
                   >
                     {savingVariants ? 'Saving...' : `Save ${shopType === 'service' ? 'Variants' : 'Models'}`}
-                  </button>
+                  </span>
                 </div>
               </form>
             </div>
@@ -6554,12 +6170,12 @@ if (shopType === 'sales') {
           </div>
 
 
-          <button
+          <span
             onClick={addStockRow}
-            className="bg-purple-500 text-white px-4 py-2 rounded-lg hover:bg-purple-600 transition-colors font-semibold flex items-center gap-2"
+            className="bg-black text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors font-semibold flex items-center gap-2"
           >
             <span>+ Add Stock Row</span>
-          </button>
+          </span>
         </div>
 
         {/* Stock Items Form */}
@@ -6585,13 +6201,12 @@ if (shopType === 'sales') {
           </div>
         )}
                 {stockFormData.length > 1 && (
-                  <button
-                    type="button"
-                    onClick={() => removeStockRow(index)}
-                    className="text-red-500 hover:text-red-700 text-sm"
-                  >
-                    Remove
-                  </button>
+<span
+  onClick={() => removeStockRow(index)}
+  className="h-12 w-25 bg-black hover:bg-gray-700 border border-black hover:border-red-500 text-red-500 flex items-center justify-center rounded-lg transition-all duration-200 cursor-pointer text-md font-medium"
+>
+  Remove
+</span>
                 )}
               </div>
                   </div>
@@ -6814,17 +6429,17 @@ if (shopType === 'sales') {
             <span className="text-red-500 text-lg mr-2">❌</span>
             <span className="text-red-700 text-sm font-medium">{stockItem.error}</span>
           </div>
-          <button
-            onClick={() => {
-              const newForm = [...stockFormData];
-              newForm[index] = { ...newForm[index], error: '' };
-              setStockFormData(newForm);
-            }}
-            className="text-red-500 hover:text-red-700 text-sm"
-            title="Clear error"
-          >
-            ✕
-          </button>
+<span
+  onClick={() => {
+    const newForm = [...stockFormData];
+    newForm[index] = { ...newForm[index], error: '' };
+    setStockFormData(newForm);
+  }}
+  className="text-red-500 hover:text-red-700 text-sm cursor-pointer"
+  title="Clear error"
+>
+  ✕
+</span>
         </div>
       </div>
     )}
@@ -6836,12 +6451,12 @@ if (shopType === 'sales') {
         {/* Save Stock Button */}
         <div className="flex justify-end mt-6">
 
-  <button
-    onClick={handleSaveStockItems}
-    className="bg-green-500 text-white px-6 py-2 rounded-lg hover:bg-green-600 transition-colors font-semibold"
-  >
-    💾 Save All Stock Items
-  </button>
+<span
+  onClick={handleSaveStockItems}
+  className="h-12 bg-black hover:bg-gray-700 border border-black hover:border-green-500 text-white flex items-center justify-center px-6 py-2 rounded-lg transition-all duration-200 cursor-pointer font-semibold text-lg"
+>
+  💾 Save All Stock Items
+</span>
 
           </div>
       </div>
@@ -6854,20 +6469,19 @@ if (shopType === 'sales') {
                   📢 Add {shopType === 'service' ? 'Service' : 'Sales'} Offer Message (Optional)
                 </label>
 
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (shopType === 'service') {
-                      setServiceOfferMessage(currentOffer.trim());
-                    } else {
-                      setSalesOfferMessage(currentOffer.trim());
-                    }
-                    setCurrentOffer('');
-                  }}
-                  className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors font-semibold"
-                >
-                  Add {shopType === 'service' ? 'Service' : 'Sales'} Offer
-                </button>
+<span
+  onClick={() => {
+    if (shopType === 'service') {
+      setServiceOfferMessage(currentOffer.trim());
+    } else {
+      setSalesOfferMessage(currentOffer.trim());
+    }
+    setCurrentOffer('');
+  }}
+  className="h-12 bg-black hover:bg-gray-700 border border-black hover:border-blue-500 text-white flex items-center justify-center px-4 py-2 rounded-lg transition-all duration-200 cursor-pointer font-semibold text-lg"
+>
+  Add {shopType === 'service' ? 'Service' : 'Sales'} Offer
+</span>
               </div>
               
               <div className="space-y-3">
@@ -6921,20 +6535,19 @@ Thank you for shopping with us! 🎉`
                       <h4 className="font-semibold text-blue-800 text-sm">
                         Current {shopType === 'service' ? 'Service' : 'Sales'} Offer:
                       </h4>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          if (shopType === 'service') {
-                            setServiceOfferMessage('');
-                          } else {
-                            setSalesOfferMessage('');
-                          }
-                          setCurrentOffer('');
-                        }}
-                        className="text-red-500 hover:text-red-700 text-sm font-medium flex items-center gap-1"
-                      >
-                        🗑️ Remove Offer
-                      </button>
+<span
+  onClick={() => {
+    if (shopType === 'service') {
+      setServiceOfferMessage('');
+    } else {
+      setSalesOfferMessage('');
+    }
+    setCurrentOffer('');
+  }}
+  className="h-12 bg-black hover:bg-gray-700 border border-black hover:border-red-500 text-red-500 flex items-center justify-center px-4 py-2 rounded-lg transition-all duration-200 cursor-pointer font-semibold text-lg gap-2"
+>
+  🗑️ Remove Offer
+</span>
                     </div>
                     <div className="bg-white p-3 rounded border border-blue-300 font-mono text-black text-sm whitespace-pre-wrap">
                       {shopType === 'service' ? serviceOfferMessage : salesOfferMessage}
@@ -7000,14 +6613,15 @@ Thank you for shopping with us! 🎉`
                   placeholder={`Enter ${shopType === 'service' ? 'service' : 'sales'} cashier name`}
                   className="flex-1 border-2 border-gray-300 rounded-lg px-3 py-3 focus:outline-none focus:border-purple-500 text-black"
                 />
-<button
-  type="button"
+<span
   onClick={addCashier}
-  disabled={cashierLoading}
-  className="bg-purple-500 text-white px-6 py-3 rounded-lg hover:bg-purple-600 transition-colors font-semibold disabled:bg-gray-400"
+  className={`h-12 bg-black hover:bg-gray-700 border border-black hover:border-purple-500 text-white flex items-center justify-center px-6 py-3 rounded-lg transition-all duration-200 cursor-pointer font-semibold text-lg ${
+    cashierLoading ? 'opacity-50 cursor-not-allowed' : ''
+  }`}
+  style={cashierLoading ? { pointerEvents: 'none' } : {}}
 >
   {cashierLoading ? 'Adding...' : '➕ Add Cashier'}
-</button>
+</span>
               </div>
 
               {/* Cashier List */}
@@ -7044,46 +6658,42 @@ Thank you for shopping with us! 🎉`
                         </div>
                         
                         <div className="flex gap-2">
-                          {editingCashier === name ? (
-                            <>
-                              <button
-                                type="button"
-                                onClick={saveEditing}
-                                className="text-green-600 hover:text-green-800 font-semibold p-2 rounded hover:bg-green-50 transition-colors"
-                                title="Save changes"
-                              >
-                                💾
-                              </button>
-                              <button
-                                type="button"
-                                onClick={cancelEditing}
-                                className="text-gray-600 hover:text-gray-800 font-semibold p-2 rounded hover:bg-gray-50 transition-colors"
-                                title="Cancel editing"
-                              >
-                                ❌
-                              </button>
-                            </>
-                          ) : (
-                            <>
-                              <button
-                                type="button"
-                                onClick={() => startEditing(name)}
-                                className="text-blue-600 hover:text-blue-800 font-semibold p-2 rounded hover:bg-blue-50 transition-colors"
-                                title="Edit cashier"
-                              >
-                                ✏️
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => deleteCashier(name)}
-                                className="text-red-600 hover:text-red-800 font-semibold p-2 rounded hover:bg-red-50 transition-colors"
-                                title="Delete cashier"
-                              >
-                                🗑️
-                              </button>
-                            </>
-                          )}
-                        </div>
+  {editingCashier === name ? (
+    <>
+      <span
+        onClick={saveEditing}
+        className="h-12 w-15 bg-black hover:bg-gray-700 border border-black hover:border-green-500 text-white flex items-center justify-center rounded-lg text-xl transition-all duration-200 cursor-pointer"
+        title="Save changes"
+      >
+        💾
+      </span>
+      <span
+        onClick={cancelEditing}
+        className="h-12 w-15 bg-black hover:bg-gray-700 border border-black hover:border-gray-500 text-white flex items-center justify-center rounded-lg text-xl transition-all duration-200 cursor-pointer"
+        title="Cancel editing"
+      >
+        ❌
+      </span>
+    </>
+  ) : (
+    <>
+      <span
+        onClick={() => startEditing(name)}
+        className="h-12 w-15 bg-black hover:bg-gray-700 border border-black hover:border-blue-500 text-white flex items-center justify-center rounded-lg text-xl transition-all duration-200 cursor-pointer"
+        title="Edit cashier"
+      >
+        ✏️
+      </span>
+      <span
+        onClick={() => deleteCashier(name)}
+        className="h-12 w-15 bg-black hover:bg-gray-700 border border-black hover:border-red-500 text-white flex items-center justify-center rounded-lg text-xl transition-all duration-200 cursor-pointer"
+        title="Delete cashier"
+      >
+        🗑️
+      </span>
+    </>
+  )}
+</div>
                       </div>
                     ))}
                   </div>
@@ -7177,15 +6787,15 @@ Thank you for shopping with us! 🎉`
       <>
         {/* Lock Button */}
         <div className="flex justify-end">
-          <button
-            onClick={() => {
-              setIsDealersUnlocked(false);
-              setDealersPassword('');
-            }}
-            className="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors font-semibold flex items-center gap-2 shadow-lg"
-          >
-            🔒 Lock Suppliers
-          </button>
+<span
+  onClick={() => {
+    setIsDealersUnlocked(false);
+    setDealersPassword('');
+  }}
+  className="h-12 bg-black hover:bg-gray-700 border border-black hover:border-gray-500 text-white flex items-center justify-center px-4 py-2 rounded-lg transition-all duration-200 cursor-pointer font-semibold text-lg gap-2 shadow-lg"
+>
+  🔒 Lock Suppliers
+</span>
         </div>
 
         {/* Add/Edit Dealer Form */}
@@ -7198,20 +6808,20 @@ Thank you for shopping with us! 🎉`
               </h2>
             </div>
             {editingDealer && (
-              <button
-                onClick={() => {
-                  setDealerForm({
-                    name: '',
-                    contact: '',
-                    address: '',
-                    gstNumber: '',
-                  });
-                  setEditingDealer(null);
-                }}
-                className="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600 transition-colors font-semibold"
-              >
-                Cancel Edit
-              </button>
+<span
+  onClick={() => {
+    setDealerForm({
+      name: '',
+      contact: '',
+      address: '',
+      gstNumber: '',
+    });
+    setEditingDealer(null);
+  }}
+  className="h-12 bg-black hover:bg-gray-700 border border-black hover:border-gray-500 text-white flex items-center justify-center px-4 py-2 rounded-lg transition-all duration-200 cursor-pointer font-semibold text-lg"
+>
+  Cancel Edit
+</span>
             )}
           </div>
 
@@ -7389,12 +6999,12 @@ Thank you for shopping with us! 🎉`
             )}
 
             <div className="flex justify-end">
-              <button
-                type="submit"
-                className="bg-green-500 text-white px-6 py-2 rounded-lg hover:bg-green-600 transition-colors font-semibold"
-              >
-                💰 Add Payment
-              </button>
+<span
+  onClick={addDealerPayment}
+  className="h-12 bg-black hover:bg-gray-700 border border-black hover:border-green-500 text-white flex items-center justify-center px-6 py-2 rounded-lg transition-all duration-200 cursor-pointer font-semibold text-lg gap-2"
+>
+  💰 Add Payment
+</span>
             </div>
           </form>
         </div>
@@ -7436,7 +7046,7 @@ Thank you for shopping with us! 🎉`
                       <th className="border border-orange-400 px-4 py-3 text-center font-bold text-white text-sm uppercase">Total + GST</th>
                       <th className="border border-orange-400 px-4 py-3 text-center font-bold text-white text-sm uppercase">Paid Amount</th>
                       <th className="border border-orange-400 px-4 py-3 text-center font-bold text-white text-sm uppercase">Balance</th>
-                      <th className="border border-orange-400 px-4 py-3 text-center font-bold text-white text-sm uppercase">Details</th>
+                      <th className="border border-orange-400 px-4 py-3 text-center font-bold text-white text-sm uppercase w-50">Details</th>
                       <th className="border border-orange-400 px-4 py-3 text-center font-bold text-white text-sm uppercase w-40">🔔 Send Alert</th>
                     </tr>
                   </thead>
@@ -7504,19 +7114,19 @@ Thank you for shopping with us! 🎉`
                               </div>
                             </td>
                             
-                            <td className="border border-gray-300 px-4 py-3 text-center">
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setSelectedDealerForDetails(dealer);
-                                  setShowPaymentDetails(true);
-                                  fetchDealerPaymentDetails(dealer._id);
-                                }}
-                                className="bg-purple-500 text-white px-4 py-2 rounded-lg hover:bg-purple-600 transition-colors font-semibold"
-                              >
-                                📊 Details
-                              </button>
-                            </td>
+<td className="border border-gray-300 px-4 py-3 text-center">
+  <span
+    onClick={(e) => {
+      e.stopPropagation();
+      setSelectedDealerForDetails(dealer);
+      setShowPaymentDetails(true);
+      fetchDealerPaymentDetails(dealer._id);
+    }}
+    className="h-12 w-30 bg-black hover:bg-gray-700 border border-black hover:border-purple-500 text-white flex items-center justify-center px-3 py-1 rounded-lg transition-all duration-200 cursor-pointer font-semibold text-base gap-2 mx-auto"
+  >
+    📊 Details
+  </span>
+</td>
 
                             <td className="border border-gray-300 px-4 py-3 text-center text-black no-expand">
                               <DealerAlertSection 
@@ -7646,16 +7256,16 @@ Thank you for shopping with us! 🎉`
                   <h3 className="text-xl font-bold text-gray-800">
                     Payment Details - {selectedDealerForDetails.name}
                   </h3>
-                  <button
-                    onClick={() => {
-                      setShowPaymentDetails(false);
-                      setSelectedDealerForDetails(null);
-                      setDealerPaymentDetails([]);
-                    }}
-                    className="text-gray-500 hover:text-gray-700 text-2xl"
-                  >
-                    ×
-                  </button>
+<span
+  onClick={() => {
+    setShowPaymentDetails(false);
+    setSelectedDealerForDetails(null);
+    setDealerPaymentDetails([]);
+  }}
+  className="h-10 w-10 bg-black hover:bg-gray-700 border border-black hover:border-gray-500 text-white flex items-center justify-center rounded-lg transition-all duration-200 cursor-pointer font-semibold text-2xl"
+>
+  ×
+</span>
                 </div>
               </div>
               
@@ -7704,16 +7314,16 @@ Thank you for shopping with us! 🎉`
               
               <div className="p-4 border-t border-gray-200 bg-gray-50">
                 <div className="flex justify-end">
-                  <button
-                    onClick={() => {
-                      setShowPaymentDetails(false);
-                      setSelectedDealerForDetails(null);
-                      setDealerPaymentDetails([]);
-                    }}
-                    className="bg-gray-500 text-white px-6 py-2 rounded-lg hover:bg-gray-600 transition-colors font-semibold"
-                  >
-                    Close
-                  </button>
+<span
+  onClick={() => {
+    setShowPaymentDetails(false);
+    setSelectedDealerForDetails(null);
+    setDealerPaymentDetails([]);
+  }}
+  className="h-12 bg-black hover:bg-gray-700 border border-black hover:border-gray-500 text-white flex items-center justify-center px-6 py-2 rounded-lg transition-all duration-200 cursor-pointer font-semibold text-lg"
+>
+  Close
+</span>
                 </div>
               </div>
             </div>
@@ -8013,26 +7623,26 @@ Thank you for shopping with us! 🎉`
                                         min="0"
                                       />
                                     </td>
-<td className="border border-gray-200 px-3 py-2 whitespace-nowrap w-40">
-  <div className="flex justify-center items-center">
-    <div className={`inline-flex items-center px-3 py-1 rounded-md text-xs font-medium ${
-      customer.paymentMode === 'cash' 
-        ? 'bg-green-50 text-green-700 border-l-4 border-green-500' :
-      customer.paymentMode === 'gpay' 
-        ? 'bg-blue-50 text-blue-700 border-l-4 border-blue-500' :
-      'bg-purple-50 text-purple-700 border-l-4 border-purple-500'
-    }`}>
-      <div className={`w-2 h-2 rounded-full mr-2 animate-pulse ${
-        customer.paymentMode === 'cash' ? 'bg-green-500' : 
-        customer.paymentMode === 'gpay' ? 'bg-blue-500' : 
-        'bg-purple-500'
-      }`}></div>
-      {customer.paymentMode === 'cash' ? 'Cash' : 
-       customer.paymentMode === 'gpay' ? 'Gpay' : 
-       `EMI-${customer.financeCompany ? customer.financeCompany.toUpperCase() : 'N/A'}`}
-    </div>
-  </div>
-</td>
+                                    <td className="border border-gray-200 px-3 py-2 whitespace-nowrap w-40">
+                                      <div className="flex justify-center items-center">
+                                        <div className={`inline-flex items-center px-3 py-1 rounded-md text-xs font-medium ${
+                                          customer.paymentMode === 'cash' 
+                                            ? 'bg-green-50 text-green-700 border-l-4 border-green-500' :
+                                          customer.paymentMode === 'gpay' 
+                                            ? 'bg-blue-50 text-blue-700 border-l-4 border-blue-500' :
+                                          'bg-purple-50 text-purple-700 border-l-4 border-purple-500'
+                                        }`}>
+                                          <div className={`w-2 h-2 rounded-full mr-2 animate-pulse ${
+                                            customer.paymentMode === 'cash' ? 'bg-green-500' : 
+                                            customer.paymentMode === 'gpay' ? 'bg-blue-500' : 
+                                            'bg-purple-500'
+                                          }`}></div>
+                                          {customer.paymentMode === 'cash' ? 'Cash' : 
+                                          customer.paymentMode === 'gpay' ? 'Gpay' : 
+                                          `EMI-${getFinanceCompanyShortCode(customer.financeCompany)}`} {/* ✅ Use short code here */}
+                                        </div>
+                                      </div>
+                                    </td>
                                     <td className="border border-gray-200 px-3 py-2 font-semibold whitespace-nowrap text-green-600 text-base">
                                       ₹{customer.cost.toFixed(2)}
                                     </td>
@@ -8041,42 +7651,42 @@ Thank you for shopping with us! 🎉`
                                 )}
                                 
                                 <td className="border border-gray-200 px-3 py-2 whitespace-nowrap">
-                                  <div className="flex items-center gap-2">
-                                    <div className="flex gap-1">
-                                      {/* Print Button */}
-                                      <button
-                                        onClick={() => handleAction(customer._id, 'print')}
-                                        className="bg-blue-500 text-white px-2 py-1 rounded text-xs hover:bg-blue-600 transition-all duration-200 font-semibold shadow hover:shadow-sm flex items-center gap-1"
-                                        title={`Print ${customer.shopType === 'service' ? '4 Inch' : 'A4'} Bill`}
-                                      >
-                                        🖨️
-                                      </button>
-                                      
-                                      {/* Download Button */}
-                                      <button
-                                        onClick={() => handleAction(customer._id, 'download')}
-                                        className="bg-green-500 text-white px-2 py-1 rounded text-xs hover:bg-green-600 transition-all duration-200 font-semibold shadow hover:shadow-sm flex items-center gap-1"
-                                        title="Download A4 PDF"
-                                      >
-                                        ⬇️
-                                      </button>
-                                      
-                                      {/* WhatsApp Button */}
-                                      <button
-                                        onClick={() => handleWhatsAppPDF(customer._id)}
-                                        className="bg-green-600 text-white px-2 py-1 rounded text-xs hover:bg-green-700 transition-all duration-200 font-semibold shadow hover:shadow-sm flex items-center gap-1"
-                                        title="Send via WhatsApp"
-                                      >
-                                        ✅
-                                      </button>
-                                    </div>
-                                    {actionStatus[customer._id] && (
-                                      <span className="text-xs text-gray-600 ml-1 bg-gray-100 px-2 py-1 rounded-full">
-                                        {actionStatus[customer._id]}
-                                      </span>
-                                    )}
-                                  </div>
-                                </td>
+  <div className="flex items-center gap-2">
+    <div className="flex gap-1">
+      {/* Print Button */}
+      <span
+        onClick={() => handleAction(customer._id, 'print')}
+        className="w-15 h-10 bg-black hover:bg-black border border-black hover:border-blue-500 justify-center rounded-lg text-xl text-white px-2 py-1 transition-all duration-200 font-semibold shadow hover:shadow-sm flex items-center gap-1"
+        title={`Print ${customer.shopType === 'service' ? '4 Inch' : 'A4'} Bill`}
+      >
+        🖨️
+      </span>
+      
+      {/* Download Button */}
+      <span
+        onClick={() => handleAction(customer._id, 'download')}
+        className="w-15 h-10 bg-black hover:bg-black border border-black hover:border-green-500 justify-center rounded-lg text-xl text-white px-2 py-1 transition-all duration-200 font-semibold shadow hover:shadow-sm flex items-center gap-1"
+        title="Download A4 PDF"
+      >
+        ⬇️
+      </span>
+      
+      {/* WhatsApp Button */}
+      <span
+        onClick={() => handleWhatsAppPDF(customer._id)}
+        className="w-15 h-10 bg-black hover:bg-black border border-black hover:border-green-500 justify-center rounded-lg text-xl text-white px-2 py-1 transition-all duration-200 font-semibold shadow hover:shadow-sm flex items-center gap-1"
+        title="Send via WhatsApp"
+      >
+        ✅
+      </span>
+    </div>
+    {actionStatus[customer._id] && (
+      <span className="text-xs text-gray-600 ml-1 bg-gray-100 px-2 py-1 rounded-full">
+        {actionStatus[customer._id]}
+      </span>
+    )}
+  </div>
+</td>
                               </tr>
                             );
                           }
@@ -8176,12 +7786,12 @@ Thank you for shopping with us! 🎉`
       <>
         {/* Lock Button */}
         <div className="flex justify-end mb-4">
-          <button
-            onClick={() => lockSection('salesStockTable')}
-            className="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors font-semibold flex items-center gap-2 shadow-lg"
-          >
-            🔒 Lock Stock Records
-          </button>
+<span
+  onClick={() => lockSection('salesStockTable')}
+  className="h-12 bg-black hover:bg-gray-700 border border-black hover:border-gray-500 text-white flex items-center justify-center px-4 py-2 rounded-lg transition-all duration-200 cursor-pointer font-semibold text-lg gap-2 shadow-lg"
+>
+  🔒 Lock Stock Records
+</span>
         </div>
 
   <div className="bg-white rounded-lg shadow-md overflow-hidden border border-orange-100">
@@ -8454,12 +8064,12 @@ Thank you for shopping with us! 🎉`
   className="border text-black border-gray-300 rounded-lg px-3 py-2"
 />
       
-      <button
-        onClick={addAccessoryTransaction}
-        className="bg-orange-500 text-white rounded-lg px-4 py-2 hover:bg-orange-600"
-      >
-        Add
-      </button>
+<span
+  onClick={addAccessoryTransaction}
+  className="h-12 bg-black hover:bg-gray-700 border border-black hover:border-orange-500 text-white flex items-center justify-center px-4 py-2 rounded-lg transition-all duration-200 cursor-pointer font-semibold text-lg"
+>
+  Add
+</span>
     </div>
 
    {/* Daily Totals Table - Show Only Today's Summary */}
@@ -8532,7 +8142,7 @@ Thank you for shopping with us! 🎉`
   <div className="flex items-center justify-between mb-4">
     <h3 className="text-lg text-gray-800 font-semibold">📋 All Transactions</h3>
     
-    <div className="flex items-center gap-3">
+    <div className="flex items-center gap-1">
       <span className="text-sm font-medium text-gray-700">Filter</span>
       <input
         type="text"
@@ -8570,18 +8180,18 @@ Thank you for shopping with us! 🎉`
         onKeyPress={(e) => e.key === 'Enter' && handleApplyAccessoryFilter()}
         className="border text-black border-gray-300 rounded-lg px-3 py-2 w-32"
       />
-      <button
-        onClick={handleApplyAccessoryFilter}
-        className="bg-green-500 text-white px-3 py-2 rounded-lg hover:bg-green-600 transition-colors text-sm font-medium"
-      >
-        Apply
-      </button>
-      <button
-        onClick={handleResetAccessoryFilter}
-        className="bg-gray-500 text-white px-3 py-2 rounded-lg hover:bg-gray-600 transition-colors text-sm font-medium"
-      >
-        Reset
-      </button>
+      <span
+  onClick={handleApplyAccessoryFilter}
+  className="h-10 bg-black hover:bg-gray-700 border border-black hover:border-green-500 text-white flex items-center justify-center px-3 py-2 rounded-lg transition-all duration-200 cursor-pointer font-medium text-lg"
+>
+  Apply
+</span>
+<span
+  onClick={handleResetAccessoryFilter}
+  className="h-10 bg-black hover:bg-gray-700 border border-black hover:border-gray-500 text-white flex items-center justify-center px-3 py-2 rounded-lg transition-all duration-200 cursor-pointer font-medium text-lg"
+>
+  Reset
+</span>
     </div>
   </div>
 
