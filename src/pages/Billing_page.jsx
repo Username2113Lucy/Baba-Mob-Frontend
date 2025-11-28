@@ -6241,15 +6241,21 @@ if (shopType === 'sales') {
                   ))}
                 </div>
                 
-                <div className="flex justify-end mt-6">
-                  <span
-                    type="submit"
-                    className="bg-black text-white px-6 py-2 rounded-lg hover:bg-gray-700 transition-colors font-semibold disabled:bg-gray-400"
-                    disabled={products.length === 0 || savingVariants}
-                  >
-                    {savingVariants ? 'Saving...' : `Save ${shopType === 'service' ? 'Variants' : 'Models'}`}
-                  </span>
-                </div>
+<div className="flex justify-end mt-6">
+  <span
+    onClick={handleSaveProductVariants}
+    className={`bg-black text-white px-6 py-2 rounded-lg transition-colors font-semibold cursor-pointer ${
+      products.length === 0 || savingVariants 
+        ? 'bg-gray-400 cursor-not-allowed' 
+        : 'hover:bg-gray-700'
+    }`}
+    style={{ 
+      pointerEvents: products.length === 0 || savingVariants ? 'none' : 'auto'
+    }}
+  >
+    {savingVariants ? 'Saving...' : `Save ${shopType === 'service' ? 'Variants' : 'Models'}`}
+  </span>
+</div>
               </form>
             </div>
                   
