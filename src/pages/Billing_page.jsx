@@ -3725,18 +3725,21 @@ return (
         className="w-full text-gray-800 h-10 border border-gray-300 rounded-lg px-3 focus:outline-none focus:border-orange-500 bg-white appearance-none"
         required
       >
-        <option value="">Select Issue Type</option>
-        <option value="Display Issue">Display Issue</option>
-        <option value="Mike Problem">Mike Problem</option>
-        <option value="Speaker Issue">Speaker Issue</option>
-        <option value="Charging Problem">Charging Problem</option>
-        <option value="Battery Drain">Battery Drain</option>
-        <option value="Software Issue">Software Issue</option>
-        <option value="Camera Problem">Camera Problem</option>
-        <option value="Network Issue">Network Issue</option>
-        <option value="Water Damage">Water Damage</option>
-        <option value="Button Not Working">Button Not Working</option>
-        <option value="other">➕ Other Issue</option>
+<option value="">Select Issue Type</option>
+<option value="CC (V8)">CC (V8)</option>
+<option value="CC (TC)">CC (TC)</option>
+<option value="CC BOARD">CC BOARD</option>
+<option value="COMBO">COMBO</option>
+<option value="OLED COMBO">OLED COMBO</option>
+<option value="BATTERY">BATTERY</option>
+<option value="WATER LOCK">WATER LOCK</option>
+<option value="SPEAKER">SPEAKER 🔊</option>
+<option value="EARPICES">EARPICES</option>
+<option value="MIC">MIC 🎙</option>
+<option value="FLASH BOOT">FLASH BOOT</option>
+<option value="REBOOT ISSUE">REBOOT ISSUE</option>
+<option value="STRIP">STRIP</option>
+<option value="other">➕ Other Issue</option>
       </select>
       
       {/* Dropdown arrow */}
