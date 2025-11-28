@@ -1155,14 +1155,14 @@ const generateInvoiceNumber = () => {
   
   if (shopType === 'sales') {
     // For sales: if condition matches, start from the given number (1001)
-    if (latestInvoice.includes('B2526-001')) {
+    if (latestInvoice.includes('B22-001')) {
       nextNumber = 1;
     } else {
       nextNumber = latestNumber + 1;
     }
   } else {
     // For service: if condition matches, start from the given number (1001)
-    if (latestInvoice.includes('SV705')) {
+    if (latestInvoice.includes('705')) {
       nextNumber = 1001;
     } else {
       nextNumber = latestNumber + 1;
@@ -1171,7 +1171,7 @@ const generateInvoiceNumber = () => {
   
   // ✅ FIXED: Reconstruct the full invoice number with prefix and year
   const nextInvoice = shopType === 'sales' 
-    ? `B26-27-${nextNumber.toString().padStart(3, '0')}`
+    ? `B25-26-${nextNumber.toString().padStart(3, '0')}`
     : `SV25-26-${nextNumber.toString().padStart(3, '0')}`;
   
   console.log('🧾 Invoice Generation Result:', {
@@ -2985,34 +2985,7 @@ const fetchDealerHsnCodes = async (dealerId) => {
   }
 };
 
-// ✅ FALLBACK: Alternative method to get HSN codes
-const fetchHsnCodesAlternative = async (dealerId) => {
-  try {
-    console.log('🔄 Trying alternative HSN fetch for dealer:', dealerId);
-    
-    // Fetch all stock items for this dealer and extract HSN codes
-    const response = await fetch(`${API_BASE}/stock-items?dealer=${dealerId}`);
-    if (response.ok) {
-      const result = await response.json();
-      if (result.success) {
-        const stockItems = result.data || [];
-        const hsnCodes = [...new Set(stockItems
-          .filter(item => item.hsn && item.hsn.trim() !== '')
-          .map(item => item.hsn)
-          .sort()
-        )];
-        
-        console.log('✅ Alternative HSN fetch successful:', hsnCodes);
-        setDealerHsnCodes(prev => ({
-          ...prev,
-          [dealerId]: hsnCodes
-        }));
-      }
-    }
-  } catch (error) {
-    console.error('❌ Alternative HSN fetch failed:', error);
-  }
-};
+
 
 const handleStockFormChange = (index, field, value) => {
   const newForm = [...stockFormData];
