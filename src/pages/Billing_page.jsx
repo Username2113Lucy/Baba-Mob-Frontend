@@ -1274,9 +1274,9 @@ const handleAddCustomer = async () => {
       return;
     }
   } else {
-    // Service validation
+    // ✅ UPDATED: Service validation - ADDED MODEL FIELD
     if (!customerData.name || !customerData.phone || !customerData.cost || 
-        !customerData.brand || !customerData.stock || !customerData.cashier) {
+        !customerData.brand || !customerData.stock || !customerData.model || !customerData.cashier) {
       alert('Please fill all required fields for service customer');
       return;
     }
@@ -1320,7 +1320,7 @@ const handleAddCustomer = async () => {
       cost: parseFloat(customerData.cost),
       brand: customerData.brand,
       stock: customerData.stock || '',
-      model: customerData.model || '',
+      model: customerData.model || '', // ✅ Now model is used for both service and sales
       password: customerData.password || '',
       paymentMode: validPaymentMode, // ✅ Now this will never be empty
       financeCompany: financeCompanyFullName, // ✅ Store full name in database
@@ -3702,23 +3702,74 @@ return (
   />
 </div>
 
-              {/* Issue Description (Service Only) */}
-              {shopType === 'service' && (
-                <div className="md:col-span-2 space-y-1">
-                  <label className="block text-xs font-semibold text-gray-700 mb-1">
-                    📋 Issue Description
-                  </label>
-                  <textarea
-                    name="issue"
-                    value={customerData.issue}
-                    onChange={handleInputChange}
-                    onKeyPress={(e) => e.key === 'Enter' && handleAddCustomer()}
-                    rows={2}
-                    className="text-gray-800 w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-200 transition-all duration-200 resize-none"
-                    placeholder="Describe the mobile issue or service required..."
-                  />
-                </div>
-              )}
+{/* Issue Description (Service Only) */}
+{shopType === 'service' && (
+  <div className="md:col-span-2 space-y-1">
+    <label className="block text-xs font-semibold text-gray-700 mb-1">
+      📋 Issue Description *
+    </label>
+    
+    {/* Custom Dropdown Container */}
+    <div className="relative">
+      <select
+        name="issue"
+        value={customerData.showOtherIssue ? 'other' : customerData.issue}
+        onChange={(e) => {
+          const selectedValue = e.target.value;
+          if (selectedValue === 'other') {
+            setCustomerData(prev => ({...prev, issue: prev.issue || '', showOtherIssue: true}));
+          } else {
+            setCustomerData(prev => ({...prev, issue: selectedValue, showOtherIssue: false}));
+          }
+        }}
+        className="w-full text-gray-800 h-10 border border-gray-300 rounded-lg px-3 focus:outline-none focus:border-orange-500 bg-white appearance-none"
+        required
+      >
+        <option value="">Select Issue Type</option>
+        <option value="Display Issue">Display Issue</option>
+        <option value="Mike Problem">Mike Problem</option>
+        <option value="Speaker Issue">Speaker Issue</option>
+        <option value="Charging Problem">Charging Problem</option>
+        <option value="Battery Drain">Battery Drain</option>
+        <option value="Software Issue">Software Issue</option>
+        <option value="Camera Problem">Camera Problem</option>
+        <option value="Network Issue">Network Issue</option>
+        <option value="Water Damage">Water Damage</option>
+        <option value="Button Not Working">Button Not Working</option>
+        <option value="other">➕ Other Issue</option>
+      </select>
+      
+      {/* Dropdown arrow */}
+      <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
+        <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path>
+        </svg>
+      </div>
+    </div>
+
+    {/* Other Issue Input Field - Stays visible when "Other" is selected */}
+    {customerData.showOtherIssue && (
+      <div className="mt-2 p-3 bg-orange-50 border border-orange-200 rounded-lg">
+        <div className="flex gap-2 items-center">
+          <span className="text-xs font-medium text-orange-800 whitespace-nowrap">✍️ Custom Issue:</span>
+          <input
+            type="text"
+            value={customerData.issue}
+            onChange={(e) => setCustomerData(prev => ({...prev, issue: e.target.value}))}
+            onKeyPress={(e) => e.key === 'Enter' && handleAddCustomer()}
+            className="flex-1 text-gray-800 border border-orange-300 rounded px-3 py-2 text-sm focus:outline-none focus:border-orange-500 bg-white"
+            placeholder="Type your custom issue here..."
+            required
+            autoFocus
+          />
+        </div>
+
+      </div>
+    )}
+
+
+  </div>
+)}
 
               {/* Cost Field */}
               <div className="space-y-1">
@@ -3911,6 +3962,7 @@ return (
 
               {/* Service: Stock Dropdown */}
               {shopType === 'service' && (
+                <>
                 <div className="space-y-1">
                   <label className="block text-xs font-semibold text-gray-700 mb-1">
                     📦 Stock Item *
@@ -3938,6 +3990,22 @@ return (
                     }
                   </select>
                 </div>
+                  <div className="space-y-1">
+    <label className="block text-xs font-semibold text-gray-700 mb-1">
+      📱 Model *
+    </label>
+    <input
+      type="text"
+      name="model"
+      value={customerData.model}
+      onChange={handleInputChange}
+      onKeyPress={(e) => e.key === 'Enter' && handleAddCustomer()}
+      className="text-gray-800 w-full h-10 border border-gray-300 rounded-lg px-3 focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-200 transition-all duration-200"
+      placeholder="Enter device model (e.g., A57, F21, Note 12)"
+      required
+    />
+  </div>
+  </>
               )}
 
               {/* Sales: Model Item Dropdown */}
@@ -4021,25 +4089,26 @@ return (
   ) : null}
 </div>
 
-{/* GST Number Field - Regular Customer (Optional) */}
-<div className="space-y-1">
-  <label className="block text-xs font-semibold text-gray-700 mb-1">
-    🏢 GST Number (Optional)
-  </label>
-  <input
-    type="text"
-    name="gstNumber"
-    value={customerData.gstNumber}
-    onChange={handleInputChange}
-    onKeyPress={(e) => e.key === 'Enter' && handleAddCustomer()}
-    className="text-gray-800 w-full h-10 border border-gray-300 rounded-lg px-3 focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-200 transition-all duration-200"
-    placeholder="Enter customer GST number"
-  />
-</div>
 
               {/* Sales: Payment Mode */}
 {shopType === 'sales' && (
-  
+  <>
+    
+  <div className="space-y-1">
+    <label className="block text-xs font-semibold text-gray-700 mb-1">
+      🏢 GST Number (Optional)
+    </label>
+    <input
+      type="text"
+      name="gstNumber"
+      value={customerData.gstNumber}
+      onChange={handleInputChange}
+      onKeyPress={(e) => e.key === 'Enter' && handleAddCustomer()}
+      className="text-gray-800 w-full h-10 border border-gray-300 rounded-lg px-3 focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-200 transition-all duration-200"
+      placeholder="Enter customer GST number"
+    />
+  </div>
+
   <div className="space-y-3">
     <label className="block text-sm font-bold text-gray-900 mb-2">
       💳 Payment Mode *
@@ -4166,6 +4235,8 @@ return (
   </div>
 )}
   </div>
+
+  </>
 )}
 
 
@@ -4514,7 +4585,6 @@ return (
 
 
 
-        // In your cashier dropdown, add loading state:
 <div className="space-y-1">
   <label className="block text-xs font-semibold text-gray-700 mb-1">
     👨‍💼 Cashier *
@@ -7346,6 +7416,7 @@ Thank you for shopping with us! 🎉`
                           {/* Service-specific columns */}
                           {shopType === 'service' && (
                             <>
+                                  <th className="border border-orange-400 px-3 py-2 text-left font-bold text-white text-xs uppercase tracking-wider">Model</th> {/* ✅ ADDED MODEL COLUMN */}
                               <th className="border border-orange-400 px-3 py-2 text-left font-bold text-white text-xs uppercase tracking-wider">Stock Item</th>
                               <th className="border border-orange-400 px-3 py-2 text-left font-bold text-white text-xs uppercase tracking-wider">Password</th>
                               <th className="border border-orange-400 px-3 py-2 text-center font-bold text-white text-xs uppercase tracking-wider">Issue</th>
@@ -7389,7 +7460,7 @@ Thank you for shopping with us! 🎉`
                                     year: 'numeric'
                                   })}
                                 </td>
-                                <td colSpan={shopType === 'service' ? "11" : "10"} className="border border-gray-300 px-4 py-3 font-bold text-blue-800 text-center text-sm">
+                                <td colSpan={shopType === 'service' ? "12" : "10"} className="border border-gray-300 px-4 py-3 font-bold text-blue-800 text-center text-sm">
                                   📊 Daily Total ({dailyData.count} {dailyData.count === 1 ? 'bill' : 'bills'})
                                 </td>
                                 <td colSpan={shopType === 'service' ? "3" : "2"} className="border border-gray-300 px-3 py-3 font-bold text-green-700 whitespace-nowrap text-center">
@@ -7424,6 +7495,9 @@ Thank you for shopping with us! 🎉`
                                 {/* Service-specific columns */}
                                 {shopType === 'service' ? (
                                   <>
+                                      <td className="border border-gray-200 px-3 py-2 whitespace-nowrap text-gray-700 text-sm">
+                                        {customer.model || 'N/A'} {/* ✅ ADDED MODEL DATA */}
+                                      </td>
                                     <td className="border border-gray-200 px-3 py-2 whitespace-nowrap text-gray-700 text-sm">
                                       {customer.stock || 'N/A'}
                                     </td>
