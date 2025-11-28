@@ -3981,7 +3981,7 @@ return (
                     🔒 Password
                   </label>
                   <input
-                    type="number"
+                    type="text"
                     name="password"
                     value={customerData.password}
                     onChange={handleInputChange}
