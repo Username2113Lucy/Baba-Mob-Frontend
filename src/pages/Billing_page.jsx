@@ -54,15 +54,20 @@ useEffect(() => {
 
   const [actionStatus, setActionStatus] = useState({});
 
-  // ✅ ADD THIS: Finance company mapping (short code → full name)
-const FINANCE_COMPANIES = {
-  'bajaj': 'Bajaj Finance',
-  'hdfc': 'HDFC Bank', 
-  'icici': 'ICICI Bank',
-  'kotak': 'Kotak Mahindra',
-  'homecredit': 'Home Credit',
-  'other': 'Other Finance'
-};
+  // ✅ UPDATE: Finance company mapping (short code → full name)
+  const FINANCE_COMPANIES = {
+    'bajaj': 'BAJAJ FINANCE',
+    'tvs': 'TVS CREDIT', 
+    'hdb': 'HDB FINANCIAL SERVICES LTD',
+    'idfc': 'IDFC FIRST BANK',
+    'chola': 'CHOLA FINANCE',
+    'dmi-oppo': 'DMI - OPPO',
+    'dmi-vivo': 'DMI - VIVO', 
+    'dmi-samsung': 'DMI - SAMSUNG',
+    'homecredit': 'HOME CREDIT',
+    'd-super': 'D-SUPER',
+    'other': 'OTHER FINANCE'
+  };
 
   // Add these to your component state - SEPARATE FOR SALES AND SERVICE
   const [salesOfferMessage, setSalesOfferMessage] = useState('');
@@ -1162,7 +1167,7 @@ const generateInvoiceNumber = () => {
     }
   } else {
     // For service: if condition matches, start from the given number (1001)
-    if (latestInvoice.includes('705')) {
+    if (latestInvoice.includes('S705')) {
       nextNumber = 1001;
     } else {
       nextNumber = latestNumber + 1;
@@ -2885,7 +2890,7 @@ const calculateMultiBrandSummary = () => {
 
 const multiBrandSummary = calculateMultiBrandSummary();
 
-// ✅ UPDATED: Multi-brand invoice number with custom jump condition
+// ✅ SIMPLE: Multi-brand invoice number with single jump condition
 const generateMultiBrandInvoiceNumber = () => {
   if (multiBrandCustomers.length === 0) {
     return 'M25-26-001';
@@ -2898,8 +2903,13 @@ const generateMultiBrandInvoiceNumber = () => {
   multiBrandCustomers.forEach(customer => {
     if (!customer.invoiceNumber) return;
     
-    const invoiceStr = customer.invoiceNumber.replace('M', '');
-    const currentNumber = parseInt(invoiceStr) || 0;
+    // Extract only the sequential number part (after last dash)
+    const parts = customer.invoiceNumber.split('-');
+    const sequentialPart = parts[parts.length - 1]; // Get the last part "001"
+    
+    // Remove any non-numeric characters
+    const numberStr = sequentialPart.replace(/\D/g, '');
+    const currentNumber = parseInt(numberStr) || 0;
     
     if (currentNumber > latestNumber) {
       latestNumber = currentNumber;
@@ -2907,26 +2917,33 @@ const generateMultiBrandInvoiceNumber = () => {
     }
   });
   
-  // ✅ CUSTOM JUMP CONDITION FOR MULTI-BRAND
+  console.log('📈 Multi-brand latest found:', {
+    latestInvoice,
+    latestNumber
+  });
+  
+  // ✅ SINGLE JUMP CONDITION
   let nextNumber;
   
-  // If last bill was M003, next should be M706
-  if (latestInvoice === 'M25-26-001') {
-    nextNumber = 706;
+  // If last bill was M25-26-001, next should be M25-26-010
+  if (latestInvoice === 'M25001') {
+    nextNumber = 10; // Jump from 001 to 010
   } 
   // Otherwise normal increment
   else {
     nextNumber = latestNumber + 1;
   }
   
+  const nextInvoice = `M25-26-${nextNumber.toString().padStart(3, '0')}`;
+  
   console.log('🧾 Multi-brand Invoice Generation:', {
     latestInvoice,
     latestNumber,
     nextNumber,
-    nextInvoice: `M${nextNumber.toString().padStart(3, '0')}`
+    nextInvoice
   });
   
-  return `M${nextNumber.toString().padStart(3, '0')}`;
+  return nextInvoice;
 };
 
 
@@ -4194,49 +4211,53 @@ return (
       </label>
     </div>
 
-    {/* ✅ ADDED: EMI Finance Company Selection */}
-    {customerData.paymentMode === 'emi' && (
-      <div className="mt-4 p-4 bg-purple-50 border border-purple-200 rounded-lg">
-        <label className="block text-sm font-semibold text-purple-800 mb-2">
-          🏢 Select Finance Company *
-        </label>
-        <select
-          value={customerData.financeCompany || ''}
-          onChange={(e) => setCustomerData(prev => ({...prev, financeCompany: e.target.value}))}
-          className="text-gray-800 w-full border border-purple-300 rounded-lg px-3 py-2 focus:outline-none focus:border-purple-500 bg-white"
-          required
-        >
-          <option value="">Select Finance Company</option>
-          <option value="bajaj">Bajaj Finance</option>
-          <option value="hdfc">HDFC Bank</option>
-          <option value="icici">ICICI Bank</option>
-          <option value="kotak">Kotak Mahindra</option>
-          <option value="homecredit">Home Credit</option>
-          <option value="other">Other Finance</option>
-        </select>
-        <p className="text-xs text-purple-600 mt-2">
-          Selected payment will show as: EMI-{customerData.financeCompany ? customerData.financeCompany.toUpperCase() : '[Company]'}
-        </p>
+{/* ✅ UPDATED: EMI Finance Company Selection */}
+{customerData.paymentMode === 'emi' && (
+  <div className="mt-4 p-4 bg-purple-50 border border-purple-200 rounded-lg">
+    <label className="block text-sm font-semibold text-purple-800 mb-2">
+      🏢 Select Finance Company *
+    </label>
+    <select
+      value={customerData.financeCompany || ''}
+      onChange={(e) => setCustomerData(prev => ({...prev, financeCompany: e.target.value}))}
+      className="text-gray-800 w-full border border-purple-300 rounded-lg px-3 py-2 focus:outline-none focus:border-purple-500 bg-white"
+      required
+    >
+      <option value="">Select Finance Company</option>
+      <option value="bajaj">● BAJAJ FINANCE</option>
+      <option value="tvs">● TVS CREDIT</option>
+      <option value="hdb">● HDB FINANCIAL SERVICES LTD</option>
+      <option value="idfc">● IDFC FIRST BANK</option>
+      <option value="chola">● CHOLA FINANCE</option>
+      <option value="dmi-oppo">● DMI - OPPO</option>
+      <option value="dmi-vivo">● DMI - VIVO</option>
+      <option value="dmi-samsung">● DMI - SAMSUNG</option>
+      <option value="homecredit">● HOME CREDIT</option>
+      <option value="d-super">● D-SUPER</option>
+      <option value="other">● OTHER FINANCE</option>
+    </select>
+    <p className="text-xs text-purple-600 mt-2">
+      Selected payment will show as: EMI-{customerData.financeCompany ? customerData.financeCompany.toUpperCase() : '[Company]'}
+    </p>
+  </div>
+)}    
+    {/* Selected payment mode display */}
+    {customerData.paymentMode && (
+      <div className="mt-2 p-2 bg-white rounded border border-gray-300">
+        <span className="text-sm font-semibold text-gray-900">
+          Selected: 
+          <span className={`ml-2 ${
+            customerData.paymentMode === 'cash' ? 'text-green-600' : 
+            customerData.paymentMode === 'gpay' ? 'text-blue-600' : 
+            'text-purple-600'
+          }`}>
+            {customerData.paymentMode === 'cash' ? '💵 Cash Payment' : 
+            customerData.paymentMode === 'gpay' ? '📱 Google Pay' : 
+            `🏦 EMI-${customerData.financeCompany ? customerData.financeCompany.toUpperCase() : '[Select Company]'}`}
+          </span>
+        </span>
       </div>
     )}
-    
-{/* Selected payment mode display */}
-{customerData.paymentMode && (
-  <div className="mt-2 p-2 bg-white rounded border border-gray-300">
-    <span className="text-sm font-semibold text-gray-900">
-      Selected: 
-      <span className={`ml-2 ${
-        customerData.paymentMode === 'cash' ? 'text-green-600' : 
-        customerData.paymentMode === 'gpay' ? 'text-blue-600' : 
-        'text-purple-600'
-      }`}>
-        {customerData.paymentMode === 'cash' ? '💵 Cash Payment' : 
-         customerData.paymentMode === 'gpay' ? '📱 Google Pay' : 
-         `🏦 EMI-${customerData.financeCompany ? customerData.financeCompany.toUpperCase() : '[Select Company]'}`}
-      </span>
-    </span>
-  </div>
-)}
   </div>
 
   </>
@@ -4593,14 +4614,14 @@ return (
     👨‍💼 Cashier *
   </label>
   <select
-    value={customerData.cashier}
-    onChange={(e) => setCustomerData(prev => ({...prev, cashier: e.target.value}))}
+    value={multiBrandData.cashier}  // ✅ CORRECT - use multiBrandData
+    onChange={(e) => setMultiBrandData(prev => ({...prev, cashier: e.target.value}))}  // ✅ CORRECT - update multiBrandData
     className="text-gray-800 w-full h-10 border border-gray-300 rounded-lg px-3 focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-200 transition-all duration-200 bg-white"
     required
-    disabled={stockLoading} // Optional: disable while loading
+    disabled={stockLoading}
   >
     <option value="">Select Cashier</option>
-    {(shopType === 'service' ? serviceCashiers : salesCashiers).map((cashier, index) => (
+    {salesCashiers.map((cashier, index) => (  // ✅ Use salesCashiers for both
       <option key={index} value={cashier}>
         {cashier}
       </option>
@@ -4610,9 +4631,9 @@ return (
   {/* Show loading or empty state messages */}
   {stockLoading ? (
     <p className="text-blue-500 text-xs mt-1">Loading cashiers...</p>
-  ) : (shopType === 'service' ? serviceCashiers : salesCashiers).length === 0 ? (
+  ) : salesCashiers.length === 0 ? (
     <p className="text-red-500 text-xs mt-1">
-      No {shopType} cashiers found. Add cashiers in the Add Product page.
+      No sales cashiers found. Add cashiers in the Add Product page.
     </p>
   ) : null}
 </div>
@@ -4633,107 +4654,135 @@ return (
         </div>
 
         {/* Payment Mode */}
-        <div className="space-y-3">
-          <label className="block text-sm font-bold text-gray-900 mb-2">
-            💳 Payment Mode *
-          </label>
-          <div className="flex gap-6 p-3 bg-gray-50 rounded-lg border border-gray-200">
-            <label className="flex items-center space-x-3 cursor-pointer group">
-              <div className="relative">
-                <input
-                  type="radio"
-                  name="paymentMode"
-                  value="cash"
-                  checked={multiBrandData.paymentMode === 'cash'}
-                  onChange={(e) => setMultiBrandData(prev => ({...prev, paymentMode: e.target.value}))}
-                  className="sr-only"
-                />
-                <div className={`w-5 h-5 border-2 rounded-full flex items-center justify-center transition-all duration-200 ${
-                  multiBrandData.paymentMode === 'cash' 
-                    ? 'border-green-500 bg-green-500' 
-                    : 'border-gray-400 group-hover:border-green-400'
-                }`}>
-                  {multiBrandData.paymentMode === 'cash' && (
-                    <div className="w-2 h-2 bg-white rounded-full"></div>
-                  )}
-                </div>
-              </div>
-              <span className="text-gray-900 font-medium group-hover:text-green-600 transition-colors">
-                💵 Cash
-              </span>
-            </label>
-            
-            <label className="flex items-center space-x-3 cursor-pointer group">
-              <div className="relative">
-                <input
-                  type="radio"
-                  name="paymentMode"
-                  value="gpay"
-                  checked={multiBrandData.paymentMode === 'gpay'}
-                  onChange={(e) => setMultiBrandData(prev => ({...prev, paymentMode: e.target.value}))}
-                  className="sr-only"
-                />
-                <div className={`w-5 h-5 border-2 rounded-full flex items-center justify-center transition-all duration-200 ${
-                  multiBrandData.paymentMode === 'gpay' 
-                    ? 'border-blue-500 bg-blue-500' 
-                    : 'border-gray-400 group-hover:border-blue-400'
-                }`}>
-                  {multiBrandData.paymentMode === 'gpay' && (
-                    <div className="w-2 h-2 bg-white rounded-full"></div>
-                  )}
-                </div>
-              </div>
-              <span className="text-gray-900 font-medium group-hover:text-blue-600 transition-colors">
-                📱 Gpay
-              </span>
-            </label>
-
-            {/* ✅ ADDED: EMI Option for Multi-brand */}
-            <label className="flex items-center space-x-3 cursor-pointer group">
-              <div className="relative">
-                <input
-                  type="radio"
-                  name="paymentMode"
-                  value="emi"
-                  checked={multiBrandData.paymentMode === 'emi'}
-                  onChange={(e) => setMultiBrandData(prev => ({...prev, paymentMode: e.target.value}))}
-                  className="sr-only"
-                />
-                <div className={`w-5 h-5 border-2 rounded-full flex items-center justify-center transition-all duration-200 ${
-                  multiBrandData.paymentMode === 'emi' 
-                    ? 'border-purple-500 bg-purple-500' 
-                    : 'border-gray-400 group-hover:border-purple-400'
-                }`}>
-                  {multiBrandData.paymentMode === 'emi' && (
-                    <div className="w-2 h-2 bg-white rounded-full"></div>
-                  )}
-                </div>
-              </div>
-              <span className="text-gray-900 font-medium group-hover:text-purple-600 transition-colors">
-                🏦 EMI
-              </span>
-            </label>
-          </div>
-
-          {/* ✅ ADDED: EMI Finance Company for Multi-brand */}
-          {/* Selected payment mode display for Multi-brand */}
-{multiBrandData.paymentMode && (
-  <div className="mt-2 p-2 bg-white rounded border border-gray-300">
-    <span className="text-sm font-semibold text-gray-900">
-      Selected: 
-      <span className={`ml-2 ${
-        multiBrandData.paymentMode === 'cash' ? 'text-green-600' : 
-        multiBrandData.paymentMode === 'gpay' ? 'text-blue-600' : 
-        'text-purple-600'
-      }`}>
-        {multiBrandData.paymentMode === 'cash' ? '💵 Cash Payment' : 
-         multiBrandData.paymentMode === 'gpay' ? '📱 Google Pay' : 
-         `🏦 EMI-${multiBrandData.financeCompany ? multiBrandData.financeCompany.toUpperCase() : '[Select Company]'}`}
-      </span>
-    </span>
-  </div>
-)}
+<div className="space-y-3">
+  <label className="block text-sm font-bold text-gray-900 mb-2">
+    💳 Payment Mode *
+  </label>
+  <div className="flex gap-6 p-3 bg-gray-50 rounded-lg border border-gray-200">
+    <label className="flex items-center space-x-3 cursor-pointer group">
+      <div className="relative">
+        <input
+          type="radio"
+          name="paymentMode"
+          value="cash"
+          checked={multiBrandData.paymentMode === 'cash'}
+          onChange={(e) => setMultiBrandData(prev => ({...prev, paymentMode: e.target.value, financeCompany: ''}))}
+          className="sr-only"
+        />
+        <div className={`w-5 h-5 border-2 rounded-full flex items-center justify-center transition-all duration-200 ${
+          multiBrandData.paymentMode === 'cash' 
+            ? 'border-green-500 bg-green-500' 
+            : 'border-gray-400 group-hover:border-green-400'
+        }`}>
+          {multiBrandData.paymentMode === 'cash' && (
+            <div className="w-2 h-2 bg-white rounded-full"></div>
+          )}
         </div>
+      </div>
+      <span className="text-gray-900 font-medium group-hover:text-green-600 transition-colors">
+        💵 Cash
+      </span>
+    </label>
+    
+    <label className="flex items-center space-x-3 cursor-pointer group">
+      <div className="relative">
+        <input
+          type="radio"
+          name="paymentMode"
+          value="gpay"
+          checked={multiBrandData.paymentMode === 'gpay'}
+          onChange={(e) => setMultiBrandData(prev => ({...prev, paymentMode: e.target.value, financeCompany: ''}))}
+          className="sr-only"
+        />
+        <div className={`w-5 h-5 border-2 rounded-full flex items-center justify-center transition-all duration-200 ${
+          multiBrandData.paymentMode === 'gpay' 
+            ? 'border-blue-500 bg-blue-500' 
+            : 'border-gray-400 group-hover:border-blue-400'
+        }`}>
+          {multiBrandData.paymentMode === 'gpay' && (
+            <div className="w-2 h-2 bg-white rounded-full"></div>
+          )}
+        </div>
+      </div>
+      <span className="text-gray-900 font-medium group-hover:text-blue-600 transition-colors">
+        📱 Gpay
+      </span>
+    </label>
+
+    {/* EMI Option for Multi-brand */}
+    <label className="flex items-center space-x-3 cursor-pointer group">
+      <div className="relative">
+        <input
+          type="radio"
+          name="paymentMode"
+          value="emi"
+          checked={multiBrandData.paymentMode === 'emi'}
+          onChange={(e) => setMultiBrandData(prev => ({...prev, paymentMode: e.target.value}))}
+          className="sr-only"
+        />
+        <div className={`w-5 h-5 border-2 rounded-full flex items-center justify-center transition-all duration-200 ${
+          multiBrandData.paymentMode === 'emi' 
+            ? 'border-purple-500 bg-purple-500' 
+            : 'border-gray-400 group-hover:border-purple-400'
+        }`}>
+          {multiBrandData.paymentMode === 'emi' && (
+            <div className="w-2 h-2 bg-white rounded-full"></div>
+          )}
+        </div>
+      </div>
+      <span className="text-gray-900 font-medium group-hover:text-purple-600 transition-colors">
+        🏦 EMI
+      </span>
+    </label>
+  </div>
+
+  {/* EMI Finance Company Selection - Only show when EMI is selected */}
+  {multiBrandData.paymentMode === 'emi' && (
+    <div className="mt-4 p-4 bg-purple-50 border border-purple-200 rounded-lg">
+      <label className="block text-sm font-semibold text-purple-800 mb-2">
+        🏢 Select Finance Company *
+      </label>
+      <select
+        value={multiBrandData.financeCompany || ''}
+        onChange={(e) => setMultiBrandData(prev => ({...prev, financeCompany: e.target.value}))}
+        className="text-gray-800 w-full border border-purple-300 rounded-lg px-3 py-2 focus:outline-none focus:border-purple-500 bg-white"
+        required
+      >
+        <option value="">Select Finance Company</option>
+        <option value="bajaj">● BAJAJ FINANCE</option>
+        <option value="tvs">● TVS CREDIT</option>
+        <option value="hdb">● HDB FINANCIAL SERVICES LTD</option>
+        <option value="idfc">● IDFC FIRST BANK</option>
+        <option value="chola">● CHOLA FINANCE</option>
+        <option value="dmi-oppo">● DMI - OPPO</option>
+        <option value="dmi-vivo">● DMI - VIVO</option>
+        <option value="dmi-samsung">● DMI - SAMSUNG</option>
+        <option value="homecredit">● HOME CREDIT</option>
+        <option value="d-super">● D-SUPER</option>
+        <option value="other">● OTHER FINANCE</option>
+      </select>
+    </div>
+  )}
+
+  {/* Selected payment mode display */}
+  {multiBrandData.paymentMode && (
+    <div className="mt-2 p-2 bg-white rounded border border-gray-300">
+      <span className="text-sm font-semibold text-gray-900">
+        Selected: 
+        <span className={`ml-2 ${
+          multiBrandData.paymentMode === 'cash' ? 'text-green-600' : 
+          multiBrandData.paymentMode === 'gpay' ? 'text-blue-600' : 
+          'text-purple-600'
+        }`}>
+          {multiBrandData.paymentMode === 'cash' ? '💵 Cash Payment' : 
+          multiBrandData.paymentMode === 'gpay' ? '📱 Google Pay' : 
+          `🏦 EMI-${multiBrandData.financeCompany ? multiBrandData.financeCompany.toUpperCase() : '[Select Company]'}`}
+        </span>
+      </span>
+    </div>
+  )}
+</div>
+
 
         <div className="md:col-span-2 flex justify-end pt-2">
           <button
