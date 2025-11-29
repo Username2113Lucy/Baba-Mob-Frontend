@@ -4004,7 +4004,7 @@ return (
                       )
                       .map((variant) => (
                         <option key={variant._id} value={variant.variantName}>
-                          {variant.variantName} - ₹{variant.sellingPrice} (Stock: {variant.quantity})
+                          {variant.variantName} - (Stock: {variant.quantity})
                         </option>
                       ))
                     }
