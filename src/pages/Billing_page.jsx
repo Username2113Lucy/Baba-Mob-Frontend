@@ -6048,206 +6048,211 @@ const handleWhatsAppPDF = async (customerId) => {
             (activeTab === 'filter' && shopType === 'sales' && salesFilterTab === 'multibrand') ? (
             <>
               {/* Multi-brand Customers Table */}
-              <div className=" bg-white rounded-lg shadow-md overflow-hidden border border-orange-100 mt-4">
-                <div className="p-4">
-                  {/* ✅ FIX 2: Added proper header styling like regular customer records */}
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="flex items-center">
-                      <div className="w-2 h-6 bg-orange-500 rounded-full mr-2"></div>
-                      <h2 className="text-xl font-bold text-gray-800">
-                        Multi-brand Records
-                      </h2>
-                    </div>
-                    <div className="text-xs text-gray-500 bg-orange-50 px-2 py-1 rounded-full">
-                      Total: {multiBrandCustomers.length} records
-                    </div>
-                  </div>
+<div className="bg-white rounded-lg shadow-md overflow-hidden border border-orange-100 mt-4">
+  <div className="p-4">
+    {/* ✅ FIX 2: Added proper header styling like regular customer records */}
+    <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center">
+        <div className="w-2 h-6 bg-orange-500 rounded-full mr-2"></div>
+        <h2 className="text-xl font-bold text-gray-800">
+          Multi-brand Records
+        </h2>
+      </div>
+      <div className="text-xs text-gray-500 bg-orange-50 px-2 py-1 rounded-full">
+        Total: {multiBrandCustomers.length} records
+      </div>
+    </div>
 
-                  {/* ✅ FIXED: Use appliedFilters to check if filters are active */}
-                  {filteredMultiBrandCustomers.length === 0 && (appliedFilters.name || appliedFilters.phone || appliedFilters.invoiceNumber || appliedFilters.paymentMode || appliedFilters.fromDate || appliedFilters.toDate) ? (
-                    <div className="text-center py-8 text-gray-500">
-                      <div className="text-4xl mb-2">🔍</div>
-                      <p className="text-base font-semibold mb-1">No matching records found</p>
-                      <p className="text-xs">Try different search terms or clear filters</p>
-                    </div>
-                  ) : (multiBrandCustomers.length === 0) ? (
-                    <div className="text-center py-8 text-gray-500">
-                      <div className="text-4xl mb-2">📋</div>
-                      <p className="text-base font-semibold mb-1">No multi-brand records found</p>
-                      <p className="text-xs">Add your first multi-brand customer to get started</p>
-                    </div>
-                  ) : (
-                    <div className="overflow-x-auto text-black">
-                      <table className="w-full border-collapse">
-                        <thead>
-                          <tr className="bg-gradient-to-r from-orange-500 to-amber-500">
-                            <th className="border border-orange-400 px-3 py-2 text-left font-bold text-white text-xs uppercase tracking-wider">Date & Time</th>
-                            <th className="border border-orange-400 px-3 py-2 text-left font-bold text-white text-xs uppercase">Cashier</th>
-                            <th className="border border-orange-400 px-3 py-2 text-left font-bold text-white text-xs uppercase tracking-wider">Invoice No.</th>
-                            <th className="border border-orange-400 px-3 py-2 text-left font-bold text-white text-xs uppercase tracking-wider">Customer Name</th>
-                            <th className="border border-orange-400 px-3 py-2 text-left font-bold text-white text-xs uppercase tracking-wider">Phone</th>
-                            <th className="border border-orange-400 px-3 py-2 text-left font-bold text-white text-xs uppercase tracking-wider">Brand</th>
-                            <th className="border border-orange-400 px-3 py-2 text-left font-bold text-white text-xs uppercase tracking-wider">Model Item</th>
-                            <th className="border border-orange-400 px-3 py-2 text-left font-bold text-white text-xs uppercase">IMEI</th>
-                            <th className="border border-orange-400 px-3 py-2 text-left font-bold text-white text-xs uppercase">HSN</th>
-                            <th className="border border-orange-400 px-3 py-2 text-left font-bold text-white text-xs uppercase">Supplier</th>
-                            <th className="border border-orange-400 px-3 py-2 text-left font-bold text-white text-xs uppercase tracking-wider w-35">Warranty Days</th>
-                            <th className="border border-orange-400 px-3 py-2 text-center font-bold text-white text-xs uppercase tracking-wider">Payment Mode</th>
-                            <th className="border border-orange-400 px-3 py-2 text-center font-bold text-white text-xs uppercase tracking-wider">Cost (₹)</th>
-                            <th className="border border-orange-400 px-3 py-2 text-center font-bold text-white text-xs uppercase tracking-wider">Actions</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {/* ✅ FIX: Use the new grouping function for multi-brand customers */}
-                          {getMultiBrandCustomersWithDailyTotals().map((item) => {
-                            if (item.type === 'dailyTotal') {
-                              const dailyData = item.data;
-                              return (
-                                <tr key={item.id} className="bg-blue-50 border-t-2 border-blue-200">
-                                  <td className="border border-gray-300 px-3 py-3 font-bold text-blue-800 whitespace-nowrap text-sm">
-                                    {new Date(dailyData.date).toLocaleDateString('en-IN', {
-                                      day: '2-digit',
-                                      month: '2-digit',
-                                      year: 'numeric'
-                                    })}
-                                  </td>
-                                  <td colSpan="10" className="border border-gray-300 px-4 py-3 font-bold text-blue-800 text-center text-sm">
-                                    📊 Daily Total ({dailyData.count} {dailyData.count === 1 ? 'bill' : 'bills'})
-                                  </td>
-                                  <td colSpan="2" className="border border-gray-300 px-3 py-3 font-bold text-green-700 whitespace-nowrap text-center">
-                                    Daily Income : ₹{dailyData.totalCost.toFixed(2)}
-                                  </td>
-                                  <td colSpan="2" className="border border-gray-300"></td>
-                                </tr>
-                              );
-                            } else {
-                              const customer = item.data;
-                              return (
-                                <tr key={item.id} className="hover:bg-orange-50 transition-colors duration-200 border-b border-gray-200">
-                                  <td className="border border-gray-200 px-3 py-2 whitespace-nowrap text-gray-700 text-sm">
-                                    {customer.date ? formatDateTime(customer.date) : new Date().toLocaleString('en-IN', {
-                                      day: '2-digit',
-                                      month: '2-digit',
-                                      year: 'numeric',
-                                      hour: '2-digit',
-                                      minute: '2-digit',
-                                      hour12: true
-                                    })}
-                                  </td>
-                                  <td className="border border-gray-200 px-3 py-2 whitespace-nowrap text-gray-700 text-sm">
-                                    {customer.cashier || 'N/A'}
-                                  </td>
-                                  <td className="border border-gray-200 px-3 py-2 font-mono whitespace-nowrap text-blue-600 bg-blue-50 text-xs">
-                                    {customer.invoiceNumber}
-                                  </td>
-                                  <td className="border border-gray-200 px-3 py-2 whitespace-nowrap text-gray-800 font-medium text-sm">
-                                    {customer.customerName}
-                                  </td>
-                                  <td className="border border-gray-200 px-3 py-2 whitespace-nowrap text-gray-700 text-sm">
-                                    {customer.phone}
-                                  </td>
-                                  <td className="border border-gray-200 px-3 py-2 whitespace-nowrap text-gray-700 text-sm">
-                                    {customer.brand || 'N/A'}
-                                  </td>
-                                  <td className="border border-gray-200 px-3 py-2 whitespace-nowrap text-gray-700 text-sm">
-                                    {customer.model || 'N/A'}
-                                  </td>
-                                  <td className="border border-gray-200 px-3 py-2 whitespace-nowrap text-gray-700 text-sm">
-                                    {customer.imei || 'N/A'}
-                                  </td>
-                                  <td className="border border-gray-200 px-3 py-2 whitespace-nowrap text-gray-700 text-sm">
-                                    {(() => {
-                                      const stockItem = stockItems.find(item => item.imei === customer.imei);
-                                      return stockItem?.hsn || 'N/A';
-                                    })()}
-                                  </td>
-                                  <td className="border border-gray-200 px-3 py-2 whitespace-nowrap text-gray-700 text-sm">
-                                    {(() => {
-                                      const stockItem = stockItems.find(item => item.imei === customer.imei);
-                                      return stockItem?.dealer?.name || 'N/A';
-                                    })()}
-                                  </td>
-                                  <td className="border border-gray-200 px-3 py-2 whitespace-nowrap text-center">
-                                    <input
-                                      type="number"
-                                      value={customer.warrantyDays || ''}
-                                      onChange={(e) => handleMultiBrandWarrantyDaysChange(
-                                        getMultiBrandCustomersWithDailyTotals().findIndex(i => i.type === 'customer' && i.data === customer),
-                                        e.target.value
-                                      )}
-                                      onBlur={(e) => handleMultiBrandWarrantyDaysSave(
-                                        getMultiBrandCustomersWithDailyTotals().findIndex(i => i.type === 'customer' && i.data === customer),
-                                        e.target.value
-                                      )}
-                                      onKeyPress={(e) => e.key === 'Enter' && e.target.blur()}
-                                      className="w-16 text-purple-600 text-center font-medium border border-gray-300 rounded px-1 py-1 focus:outline-none focus:border-purple-500 text-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none mx-auto block"
-                                      placeholder="0"
-                                      min="0"
-                                    />
-                                  </td>
-                                  <td className="border border-gray-200 px-3 py-2 whitespace-nowrap w-40">
-                                    <div className="flex justify-center items-center">
-                                      <div className={`inline-flex items-center px-3 py-1 rounded-md text-xs font-medium ${customer.paymentMode === 'cash'
-                                        ? 'bg-green-50 text-green-700 border-l-4 border-green-500' :
-                                        customer.paymentMode === 'gpay'
-                                          ? 'bg-blue-50 text-blue-700 border-l-4 border-blue-500' :
-                                          'bg-purple-50 text-purple-700 border-l-4 border-purple-500'
-                                        }`}>
-                                        <div className={`w-2 h-2 rounded-full mr-2 animate-pulse ${customer.paymentMode === 'cash' ? 'bg-green-500' :
-                                          customer.paymentMode === 'gpay' ? 'bg-blue-500' :
-                                            'bg-purple-500'
-                                          }`}></div>
-                                        {customer.paymentMode === 'cash' ? 'Cash' :
-                                          customer.paymentMode === 'gpay' ? 'Gpay' :
-                                            `EMI-${getFinanceCompanyShortCode(customer.financeCompany)}`}
-                                      </div>
-                                    </div>
-                                  </td>
-                                  <td className="border border-gray-200 px-3 py-2 font-semibold whitespace-nowrap text-green-600 text-base">
-                                    ₹{customer.cost.toFixed(2)}
-                                  </td>
-                                  <td className="border border-gray-200 px-3 py-2 whitespace-nowrap">
-                                    <div className="flex items-center gap-2">
-                                      <div className="flex gap-1">
-                                        <span
-                                          onClick={() => handleMultiBrandAction(customer, 'print')}
-                                          className="w-15 h-10 bg-black hover:bg-black border border-black justify-center rounded-lg text-xl hover:border-blue-500 text-white px-2 py-1 transition-all duration-200 font-semibold shadow hover:shadow-sm flex items-center gap-1"
-                                          title="Print Multi-brand Bill"
-                                        >
-                                          🖨️
-                                        </span>
-                                        <span
-                                          onClick={() => handleMultiBrandAction(customer, 'download')}
-                                          className="w-15 h-10 bg-black hover:bg-black border border-black justify-center rounded-lg text-xl  text-white px-2 py-1   transition-all duration-200 font-semibold shadow hover:shadow-sm flex items-center gap-1"
-                                          title="Download PDF"
-                                        >
-                                          ⬇️
-                                        </span>
-                                        <span
-                                          onClick={() => handleMultiBrandWhatsApp(customer)}
-                                          className="w-15 h-10 bg-black hover:bg-black border border-black justify-center rounded-lg text-xl  text-white px-2 py-1  transition-all duration-200 font-semibold shadow hover:shadow-sm flex items-center gap-1"
-                                          title="Send via WhatsApp"
-                                        >
-                                          ✅
-                                        </span>
-                                      </div>
-                                      {multiBrandActionStatus[customer.invoiceNumber] && (
-                                        <span className="text-xs text-gray-600 ml-1 bg-gray-100 px-2 py-1 rounded-full">
-                                          {multiBrandActionStatus[customer.invoiceNumber]}
-                                        </span>
-                                      )}
-                                    </div>
-                                  </td>
-                                </tr>
-                              );
-                            }
+    {/* ✅ FIXED: Use appliedFilters to check if filters are active */}
+    {filteredMultiBrandCustomers.length === 0 && (appliedFilters.name || appliedFilters.phone || appliedFilters.invoiceNumber || appliedFilters.paymentMode || appliedFilters.fromDate || appliedFilters.toDate || appliedFilters.imei) ? (
+      <div className="text-center py-8 text-gray-500">
+        <div className="text-4xl mb-2">🔍</div>
+        <p className="text-base font-semibold mb-1">No matching records found</p>
+        <p className="text-xs">Try different search terms or clear filters</p>
+      </div>
+    ) : (multiBrandCustomers.length === 0) ? (
+      <div className="text-center py-8 text-gray-500">
+        <div className="text-4xl mb-2">📋</div>
+        <p className="text-base font-semibold mb-1">No multi-brand records found</p>
+        <p className="text-xs">Add your first multi-brand customer to get started</p>
+      </div>
+    ) : (
+      <div className="overflow-hidden rounded-lg border border-gray-200">
+        {/* ✅ ADDED: Fixed height container with vertical scroll */}
+        <div className="h-100 overflow-y-auto">
+          <div className="overflow-x-auto">
+            <table className="w-full border-collapse">
+              <thead>
+                <tr className="bg-gradient-to-r from-orange-500 to-amber-500 sticky top-0 z-10">
+                  <th className="border border-orange-400 px-3 py-2 text-left font-bold text-white text-xs uppercase tracking-wider rounded-tl-lg">Date & Time</th>
+                  <th className="border border-orange-400 px-3 py-2 text-left font-bold text-white text-xs uppercase">Cashier</th>
+                  <th className="border border-orange-400 px-3 py-2 text-left font-bold text-white text-xs uppercase tracking-wider">Invoice No.</th>
+                  <th className="border border-orange-400 px-3 py-2 text-left font-bold text-white text-xs uppercase tracking-wider">Customer Name</th>
+                  <th className="border border-orange-400 px-3 py-2 text-left font-bold text-white text-xs uppercase tracking-wider">Phone</th>
+                  <th className="border border-orange-400 px-3 py-2 text-left font-bold text-white text-xs uppercase tracking-wider">Brand</th>
+                  <th className="border border-orange-400 px-3 py-2 text-left font-bold text-white text-xs uppercase tracking-wider">Model Item</th>
+                  <th className="border border-orange-400 px-3 py-2 text-left font-bold text-white text-xs uppercase">IMEI</th>
+                  <th className="border border-orange-400 px-3 py-2 text-left font-bold text-white text-xs uppercase">HSN</th>
+                  <th className="border border-orange-400 px-3 py-2 text-left font-bold text-white text-xs uppercase">Supplier</th>
+                  <th className="border border-orange-400 px-3 py-2 text-left font-bold text-white text-xs uppercase tracking-wider w-35">Warranty Days</th>
+                  <th className="border border-orange-400 px-3 py-2 text-center font-bold text-white text-xs uppercase tracking-wider">Payment Mode</th>
+                  <th className="border border-orange-400 px-3 py-2 text-center font-bold text-white text-xs uppercase tracking-wider">Cost (₹)</th>
+                  <th className="border border-orange-400 px-3 py-2 text-center font-bold text-white text-xs uppercase tracking-wider rounded-tr-lg">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {/* ✅ FIX: Use the new grouping function for multi-brand customers */}
+                {getMultiBrandCustomersWithDailyTotals().map((item) => {
+                  if (item.type === 'dailyTotal') {
+                    const dailyData = item.data;
+                    return (
+                      <tr key={item.id} className="bg-blue-50 border-t-2 border-blue-200">
+                        <td className="border border-gray-300 px-3 py-3 font-bold text-blue-800 whitespace-nowrap text-sm">
+                          {new Date(dailyData.date).toLocaleDateString('en-IN', {
+                            day: '2-digit',
+                            month: '2-digit',
+                            year: 'numeric'
                           })}
-                        </tbody>
-                      </table>
-                    </div>
-                  )}
-                </div>
-              </div>
+                        </td>
+                        <td colSpan="10" className="border border-gray-300 px-4 py-3 font-bold text-blue-800 text-center text-sm">
+                          📊 Daily Total ({dailyData.count} {dailyData.count === 1 ? 'bill' : 'bills'})
+                        </td>
+                        <td colSpan="2" className="border border-gray-300 px-3 py-3 font-bold text-green-700 whitespace-nowrap text-center">
+                          Daily Income : ₹{dailyData.totalCost.toFixed(2)}
+                        </td>
+                        <td colSpan="2" className="border border-gray-300"></td>
+                      </tr>
+                    );
+                  } else {
+                    const customer = item.data;
+                    return (
+                      <tr key={item.id} className="hover:bg-orange-50 transition-colors duration-200 border-b border-gray-200">
+                        <td className="border border-gray-200 px-3 py-2 whitespace-nowrap text-gray-700 text-sm">
+                          {customer.date ? formatDateTime(customer.date) : new Date().toLocaleString('en-IN', {
+                            day: '2-digit',
+                            month: '2-digit',
+                            year: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit',
+                            hour12: true
+                          })}
+                        </td>
+                        <td className="border border-gray-200 px-3 py-2 whitespace-nowrap text-gray-700 text-sm">
+                          {customer.cashier || 'N/A'}
+                        </td>
+                        <td className="border border-gray-200 px-3 py-2 font-mono whitespace-nowrap text-blue-600 bg-blue-50 text-xs">
+                          {customer.invoiceNumber}
+                        </td>
+                        <td className="border border-gray-200 px-3 py-2 whitespace-nowrap text-gray-800 font-medium text-sm">
+                          {customer.customerName}
+                        </td>
+                        <td className="border border-gray-200 px-3 py-2 whitespace-nowrap text-gray-700 text-sm">
+                          {customer.phone}
+                        </td>
+                        <td className="border border-gray-200 px-3 py-2 whitespace-nowrap text-gray-700 text-sm">
+                          {customer.brand || 'N/A'}
+                        </td>
+                        <td className="border border-gray-200 px-3 py-2 whitespace-nowrap text-gray-700 text-sm">
+                          {customer.model || 'N/A'}
+                        </td>
+                        <td className="border border-gray-200 px-3 py-2 whitespace-nowrap text-gray-700 text-sm">
+                          {customer.imei || 'N/A'}
+                        </td>
+                        <td className="border border-gray-200 px-3 py-2 whitespace-nowrap text-gray-700 text-sm">
+                          {(() => {
+                            const stockItem = stockItems.find(item => item.imei === customer.imei);
+                            return stockItem?.hsn || 'N/A';
+                          })()}
+                        </td>
+                        <td className="border border-gray-200 px-3 py-2 whitespace-nowrap text-gray-700 text-sm">
+                          {(() => {
+                            const stockItem = stockItems.find(item => item.imei === customer.imei);
+                            return stockItem?.dealer?.name || 'N/A';
+                          })()}
+                        </td>
+                        <td className="border border-gray-200 px-3 py-2 whitespace-nowrap text-center">
+                          <input
+                            type="number"
+                            value={customer.warrantyDays || ''}
+                            onChange={(e) => handleMultiBrandWarrantyDaysChange(
+                              getMultiBrandCustomersWithDailyTotals().findIndex(i => i.type === 'customer' && i.data === customer),
+                              e.target.value
+                            )}
+                            onBlur={(e) => handleMultiBrandWarrantyDaysSave(
+                              getMultiBrandCustomersWithDailyTotals().findIndex(i => i.type === 'customer' && i.data === customer),
+                              e.target.value
+                            )}
+                            onKeyPress={(e) => e.key === 'Enter' && e.target.blur()}
+                            className="w-16 text-purple-600 text-center font-medium border border-gray-300 rounded px-1 py-1 focus:outline-none focus:border-purple-500 text-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none mx-auto block"
+                            placeholder="0"
+                            min="0"
+                          />
+                        </td>
+                        <td className="border border-gray-200 px-3 py-2 whitespace-nowrap w-40">
+                          <div className="flex justify-center items-center">
+                            <div className={`inline-flex items-center px-3 py-1 rounded-md text-xs font-medium ${customer.paymentMode === 'cash'
+                              ? 'bg-green-50 text-green-700 border-l-4 border-green-500' :
+                              customer.paymentMode === 'gpay'
+                                ? 'bg-blue-50 text-blue-700 border-l-4 border-blue-500' :
+                                'bg-purple-50 text-purple-700 border-l-4 border-purple-500'
+                              }`}>
+                              <div className={`w-2 h-2 rounded-full mr-2 animate-pulse ${customer.paymentMode === 'cash' ? 'bg-green-500' :
+                                customer.paymentMode === 'gpay' ? 'bg-blue-500' :
+                                  'bg-purple-500'
+                                }`}></div>
+                              {customer.paymentMode === 'cash' ? 'Cash' :
+                                customer.paymentMode === 'gpay' ? 'Gpay' :
+                                  `EMI-${getFinanceCompanyShortCode(customer.financeCompany)}`}
+                            </div>
+                          </div>
+                        </td>
+                        <td className="border border-gray-200 px-3 py-2 font-semibold whitespace-nowrap text-green-600 text-base">
+                          ₹{customer.cost.toFixed(2)}
+                        </td>
+                        <td className="border border-gray-200 px-3 py-2 whitespace-nowrap">
+                          <div className="flex items-center gap-2">
+                            <div className="flex gap-1">
+                              <span
+                                onClick={() => handleMultiBrandAction(customer, 'print')}
+                                className="w-15 h-10 bg-black hover:bg-black border border-black justify-center rounded-lg text-xl hover:border-blue-500 text-white px-2 py-1 transition-all duration-200 font-semibold shadow hover:shadow-sm flex items-center gap-1"
+                                title="Print Multi-brand Bill"
+                              >
+                                🖨️
+                              </span>
+                              <span
+                                onClick={() => handleMultiBrandAction(customer, 'download')}
+                                className="w-15 h-10 bg-black hover:bg-black border border-black justify-center rounded-lg text-xl  text-white px-2 py-1   transition-all duration-200 font-semibold shadow hover:shadow-sm flex items-center gap-1"
+                                title="Download PDF"
+                              >
+                                ⬇️
+                              </span>
+                              <span
+                                onClick={() => handleMultiBrandWhatsApp(customer)}
+                                className="w-15 h-10 bg-black hover:bg-black border border-black justify-center rounded-lg text-xl  text-white px-2 py-1  transition-all duration-200 font-semibold shadow hover:shadow-sm flex items-center gap-1"
+                                title="Send via WhatsApp"
+                              >
+                                ✅
+                              </span>
+                            </div>
+                            {multiBrandActionStatus[customer.invoiceNumber] && (
+                              <span className="text-xs text-gray-600 ml-1 bg-gray-100 px-2 py-1 rounded-full">
+                                {multiBrandActionStatus[customer.invoiceNumber]}
+                              </span>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  }
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    )}
+  </div>
+</div>
 
 {/* Multibrand Income Summary */}
 {(activeTab === 'multibrand' && shopType === 'sales') || 
