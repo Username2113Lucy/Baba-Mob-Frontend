@@ -141,30 +141,31 @@ export const Billing_page = () => {
 
   const [filteredStockItems, setFilteredStockItems] = useState([]);
 
-  // ✅ ADD: Separate states for input values and applied filters
-  const [filterInputData, setFilterInputData] = useState({
-    name: '',
-    phone: '',
-    invoiceNumber: '',
-    date: '',
-    status: '',
-    paymentMode: '',
-    billType: '',
-    fromDate: '',
-    toDate: ''
-  });
+const [filterInputData, setFilterInputData] = useState({
+  name: '',
+  phone: '',
+  invoiceNumber: '',
+  date: '',
+  status: '',
+  paymentMode: '',
+  billType: '',
+  fromDate: '',
+  toDate: '',
+  imei: '' // ✅ ADD THIS
+});
 
-  const [appliedFilters, setAppliedFilters] = useState({
-    name: '',
-    phone: '',
-    invoiceNumber: '',
-    date: '',
-    status: '',
-    paymentMode: '',
-    billType: '',
-    fromDate: '',
-    toDate: ''
-  });
+const [appliedFilters, setAppliedFilters] = useState({
+  name: '',
+  phone: '',
+  invoiceNumber: '',
+  date: '',
+  status: '',
+  paymentMode: '',
+  billType: '',
+  fromDate: '',
+  toDate: '',
+  imei: '' // ✅ ADD THIS
+});
 
   // Update your stockFormData state to include error messages
   const [stockFormData, setStockFormData] = useState([{
@@ -1143,32 +1144,34 @@ const calculateTotalQuantityAllProducts = () => {
     }
   };
 
-  // ✅ UPDATE: Reset both input data and applied filters
-  const handleResetMultiBrandFilter = () => {
-    setFilterInputData({
-      name: '',
-      phone: '',
-      invoiceNumber: '',
-      date: '',
-      status: '',
-      paymentMode: '',
-      billType: '',
-      fromDate: '',
-      toDate: ''
-    });
-    setAppliedFilters({
-      name: '',
-      phone: '',
-      invoiceNumber: '',
-      date: '',
-      status: '',
-      paymentMode: '',
-      billType: '',
-      fromDate: '',
-      toDate: ''
-    });
-    setFilteredMultiBrandCustomers([]);
-  };
+// ✅ FIXED: Reset multi-brand filter function
+const handleResetMultiBrandFilter = () => {
+  setFilterInputData({
+    name: '',
+    phone: '',
+    invoiceNumber: '',
+    date: '',
+    status: '',
+    paymentMode: '',
+    billType: '',
+    fromDate: '',
+    toDate: '',
+    imei: '' // ✅ ADDED
+  });
+  setAppliedFilters({
+    name: '',
+    phone: '',
+    invoiceNumber: '',
+    date: '',
+    status: '',
+    paymentMode: '',
+    billType: '',
+    fromDate: '',
+    toDate: '',
+    imei: '' // ✅ ADDED
+  });
+  setFilteredMultiBrandCustomers([]);
+};
 
   // ✅ FIXED: Invoice number generation with proper parsing
   const generateInvoiceNumber = () => {
@@ -1699,17 +1702,30 @@ const calculateTotalQuantityAllProducts = () => {
     }, 5000);
   };
 
-// ✅ FIXED: Service filter function with proper status and date filtering
+// ✅ FIXED: Service filter function - IMEI only for Sales
 const handleApplyFilter = () => {
+  console.log('🔍 Applying customer filter. Shop Type:', shopType, 'IMEI:', filterData.imei);
+  
   // If no filters are applied, show all customers for current shop type
-  if (!filterData.name && !filterData.phone && !filterData.invoiceNumber && 
-      !filterData.status && !filterData.fromDate && !filterData.toDate) {
-    setCustomers(allCustomers);
+  const isAnyFilterApplied = filterData.name || filterData.phone || filterData.invoiceNumber || 
+    filterData.status || filterData.fromDate || filterData.toDate || 
+    filterData.paymentMode || (shopType === 'sales' && filterData.imei);
+
+  if (!isAnyFilterApplied) {
+    console.log('No filters applied, showing all customers');
+    // Filter out multi-brand customers for regular view
+    const regularCustomers = allCustomers.filter(customer => customer.billType !== 'multi-brand');
+    setCustomers(regularCustomers);
     return;
   }
 
   // Filter customers on frontend
   const filteredCustomers = allCustomers.filter(customer => {
+    // Filter out multi-brand customers first
+    if (customer.billType === 'multi-brand') {
+      return false;
+    }
+
     // Name filter
     if (filterData.name && !customer.customerName?.toLowerCase().includes(filterData.name.toLowerCase())) {
       return false;
@@ -1725,21 +1741,29 @@ const handleApplyFilter = () => {
       return false;
     }
 
-    // ✅ FIXED: Status filter for service
+    // ✅ FIXED: IMEI filter - ONLY for Sales customers
+    if (shopType === 'sales' && filterData.imei) {
+      const customerImei = customer.imei || '';
+      if (!customerImei.toLowerCase().includes(filterData.imei.toLowerCase())) {
+        console.log('IMEI filter failed:', customerImei, 'does not contain', filterData.imei);
+        return false;
+      }
+      console.log('IMEI filter passed:', customerImei, 'contains', filterData.imei);
+    }
+
+    // Status filter for service
     if (shopType === 'service' && filterData.status && customer.status !== filterData.status) {
       return false;
     }
 
-    // ✅ FIXED: Payment mode filter for sales
+    // Payment mode filter for sales
     if (shopType === 'sales' && filterData.paymentMode && customer.paymentMode !== filterData.paymentMode) {
       return false;
     }
 
-    // ✅ FIXED: Date range filter with proper date comparison
+    // Date range filter
     if (filterData.fromDate || filterData.toDate) {
       const customerDate = new Date(customer.date);
-      
-      // Reset time part to compare only dates
       customerDate.setHours(0, 0, 0, 0);
       
       if (filterData.fromDate && isValidDDMMYYYY(filterData.fromDate)) {
@@ -1766,6 +1790,7 @@ const handleApplyFilter = () => {
     return true;
   });
 
+  console.log('Filtered customers:', filteredCustomers.length);
   setCustomers(filteredCustomers);
 };
 
@@ -1808,7 +1833,8 @@ const handleResetFilter = () => {
     paymentMode: '',
     billType: '',
     fromDate: '',
-    toDate: ''
+    toDate: '',
+    imei: '' // ✅ ADDED
   });
   
   // Reset based on current view
@@ -3790,73 +3816,89 @@ const handleResetStockFilter = () => {
   };
 
 
-  // ✅ UPDATE: Apply filter function
-  const handleApplyMultiBrandFilter = () => {
-    console.log('🔍 Applying filters:', filterInputData);
+// ✅ FIXED: Apply multi-brand filter function
+const handleApplyMultiBrandFilter = () => {
+  console.log('🔍 Applying multibrand filters:', filterInputData);
+  console.log('Total multibrand customers:', multiBrandCustomers.length);
 
-    // Copy input data to applied filters
-    setAppliedFilters({ ...filterInputData });
+  // Copy input data to applied filters
+  setAppliedFilters({ ...filterInputData });
 
-    // If no filters are applied, show all records
-    const isFilterApplied = filterInputData.name || filterInputData.phone || filterInputData.invoiceNumber ||
-      filterInputData.paymentMode || filterInputData.fromDate || filterInputData.toDate;
+  // If no filters are applied, show all records
+  const isFilterApplied = filterInputData.name || filterInputData.phone || 
+    filterInputData.invoiceNumber || filterInputData.paymentMode || 
+    filterInputData.fromDate || filterInputData.toDate || filterInputData.imei;
 
-    if (!isFilterApplied) {
-      setFilteredMultiBrandCustomers([]);
-      return;
+  if (!isFilterApplied) {
+    console.log('No filters applied, showing empty list');
+    setFilteredMultiBrandCustomers([]);
+    return;
+  }
+
+  // Apply the actual filtering
+  const filtered = multiBrandCustomers.filter(customer => {
+    console.log('Checking customer:', customer.customerName, 'IMEI:', customer.imei);
+
+    // Name filter
+    if (filterInputData.name && !customer.customerName?.toLowerCase().includes(filterInputData.name.toLowerCase())) {
+      return false;
     }
 
-    // Apply the actual filtering
-    const filtered = multiBrandCustomers.filter(customer => {
-      // Name filter
-      if (filterInputData.name && !customer.customerName?.toLowerCase().includes(filterInputData.name.toLowerCase())) {
+    // Phone filter
+    if (filterInputData.phone && !customer.phone?.includes(filterInputData.phone)) {
+      return false;
+    }
+
+    // Invoice filter
+    if (filterInputData.invoiceNumber && !customer.invoiceNumber?.toLowerCase().includes(filterInputData.invoiceNumber.toLowerCase())) {
+      return false;
+    }
+
+    // ✅ FIXED: IMEI filter - handle empty/null IMEI
+    if (filterInputData.imei) {
+      const customerImei = customer.imei || '';
+      if (!customerImei.toLowerCase().includes(filterInputData.imei.toLowerCase())) {
+        console.log('Multibrand IMEI filter failed:', customerImei, 'does not contain', filterInputData.imei);
         return false;
       }
+      console.log('Multibrand IMEI filter passed:', customerImei, 'contains', filterInputData.imei);
+    }
 
-      // Phone filter
-      if (filterInputData.phone && !customer.phone?.includes(filterInputData.phone)) {
-        return false;
-      }
+    // Payment mode filter
+    if (filterInputData.paymentMode && customer.paymentMode !== filterInputData.paymentMode) {
+      return false;
+    }
 
-      // Invoice filter
-      if (filterInputData.invoiceNumber && !customer.invoiceNumber?.toLowerCase().includes(filterInputData.invoiceNumber.toLowerCase())) {
-        return false;
-      }
+    // Date range filter
+    if (filterInputData.fromDate || filterInputData.toDate) {
+      const customerDate = new Date(customer.date);
+      customerDate.setHours(0, 0, 0, 0);
 
-      // Payment mode filter
-      if (filterInputData.paymentMode && customer.paymentMode !== filterInputData.paymentMode) {
-        return false;
-      }
-
-      // Date range filter
-      if (filterInputData.fromDate || filterInputData.toDate) {
-        const customerDate = new Date(customer.date);
-        customerDate.setHours(0, 0, 0, 0);
-
-        if (filterInputData.fromDate && isValidDDMMYYYY(filterInputData.fromDate)) {
-          const fromDate = parseDDMMYYYY(filterInputData.fromDate);
-          if (fromDate) {
-            fromDate.setHours(0, 0, 0, 0);
-            if (customerDate < fromDate) return false;
-          }
-        }
-
-        if (filterInputData.toDate && isValidDDMMYYYY(filterInputData.toDate)) {
-          const toDate = parseDDMMYYYY(filterInputData.toDate);
-          if (toDate) {
-            toDate.setHours(0, 0, 0, 0);
-            if (customerDate > toDate) return false;
-          }
+      if (filterInputData.fromDate && isValidDDMMYYYY(filterInputData.fromDate)) {
+        const fromDate = parseDDMMYYYY(filterInputData.fromDate);
+        if (fromDate) {
+          fromDate.setHours(0, 0, 0, 0);
+          if (customerDate < fromDate) return false;
         }
       }
 
-      return true;
-    });
+      if (filterInputData.toDate && isValidDDMMYYYY(filterInputData.toDate)) {
+        const toDate = parseDDMMYYYY(filterInputData.toDate);
+        if (toDate) {
+          toDate.setHours(0, 0, 0, 0);
+          if (customerDate > toDate) return false;
+        }
+      }
+    }
 
-    setFilteredMultiBrandCustomers(filtered);
-  };
+    return true;
+  });
 
-  const handleWhatsAppPDF = async (customerId) => {
+  console.log('Filtered multibrand customers:', filtered.length);
+  setFilteredMultiBrandCustomers(filtered);
+};
+
+const handleWhatsAppPDF = async (customerId) => {
     setActionStatus(prev => ({
       ...prev,
       [customerId]: '❗ Checking WhatsApp connection...'
@@ -5492,6 +5534,29 @@ const handleResetStockFilter = () => {
                       maxLength="10"
                     />
                   </div>
+
+                  {shopType === 'sales' && salesFilterTab === 'customer' && (
+      <div className="space-y-1">
+        <label className="block text-xs font-semibold text-gray-700 mb-1">
+          📱 IMEI Number
+        </label>
+        <input
+          type="text"
+          name="imei"
+          value={filterData.imei}
+          onChange={(e) => {
+            const trimmedValue = e.target.value.replace(/^\s+/, '');
+            setFilterData(prev => ({
+              ...prev,
+              imei: trimmedValue
+            }));
+          }}
+          onKeyPress={(e) => e.key === 'Enter' && handleApplyFilter()}
+          className="text-gray-800 w-full h-10 border border-gray-300 rounded-lg px-3 focus:outline-none focus:border-orange-500 transition-all duration-200"
+          placeholder="Search by IMEI"
+        />
+      </div>
+    )}
                 </div>
               )}
 
@@ -5903,6 +5968,27 @@ const handleResetStockFilter = () => {
                       maxLength="10"
                     />
                   </div>
+
+                  <div className="space-y-1">
+      <label className="block text-xs font-semibold text-gray-700 mb-1">
+        📱 IMEI Number
+      </label>
+      <input
+        type="text"
+        name="imei"
+        value={filterInputData.imei}
+        onChange={(e) => {
+          const trimmedValue = e.target.value.replace(/^\s+/, '');
+          setFilterInputData(prev => ({
+            ...prev,
+            imei: trimmedValue
+          }));
+        }}
+        onKeyPress={(e) => e.key === 'Enter' && handleApplyMultiBrandFilter()}
+        className="text-gray-800 w-full h-10 border border-gray-300 rounded-lg px-3 focus:outline-none focus:border-orange-500 transition-all duration-200"
+        placeholder="Search by IMEI"
+      />
+    </div>
                 </div>
               )}
 
@@ -5930,25 +6016,12 @@ const handleResetStockFilter = () => {
                     >
                       <span>🔍 Apply Multibrand Filter</span>
                     </span>
-                    <span
-                      onClick={() => {
-                        setFilteredMultiBrandCustomers(multiBrandCustomers);
-                        setFilterData({
-                          name: '',
-                          phone: '',
-                          invoiceNumber: '',
-                          date: '',
-                          status: '',
-                          paymentMode: '',
-                          billType: '',
-                          fromDate: '', // ✅ FIXED
-                          toDate: ''    // ✅ FIXED
-                        });
-                      }}
-                      className="bg-gradient-to-r from-gray-500 to-gray-600 text-white px-4 py-2 rounded-lg hover:from-gray-600 hover:to-gray-700 transition-all duration-300 font-semibold text-md shadow hover:shadow-md flex items-center gap-1 cursor-pointer"
-                    >
-                      <span>🔄 Reset Multibrand Filter</span>
-                    </span>
+<span
+  onClick={handleResetMultiBrandFilter}
+  className="bg-gradient-to-r from-gray-500 to-gray-600 text-white px-4 py-2 rounded-lg hover:from-gray-600 hover:to-gray-700 transition-all duration-300 font-semibold text-md shadow hover:shadow-md flex items-center gap-1 cursor-pointer"
+>
+  <span>🔄 Reset Multibrand Filter</span>
+</span>
                   </>
                 ) : (
                   <>
@@ -5975,7 +6048,7 @@ const handleResetStockFilter = () => {
             (activeTab === 'filter' && shopType === 'sales' && salesFilterTab === 'multibrand') ? (
             <>
               {/* Multi-brand Customers Table */}
-              <div className="h-100 bg-white rounded-lg shadow-md overflow-hidden border border-orange-100 mt-4">
+              <div className=" bg-white rounded-lg shadow-md overflow-hidden border border-orange-100 mt-4">
                 <div className="p-4">
                   {/* ✅ FIX 2: Added proper header styling like regular customer records */}
                   <div className="flex items-center justify-between mb-4">
@@ -5996,12 +6069,6 @@ const handleResetStockFilter = () => {
                       <div className="text-4xl mb-2">🔍</div>
                       <p className="text-base font-semibold mb-1">No matching records found</p>
                       <p className="text-xs">Try different search terms or clear filters</p>
-                      <button
-                        onClick={handleResetMultiBrandFilter}
-                        className="mt-3 bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-200"
-                      >
-                        🔄 Clear All Filters
-                      </button>
                     </div>
                   ) : (multiBrandCustomers.length === 0) ? (
                     <div className="text-center py-8 text-gray-500">
