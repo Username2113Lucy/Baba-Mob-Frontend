@@ -141,31 +141,31 @@ export const Billing_page = () => {
 
   const [filteredStockItems, setFilteredStockItems] = useState([]);
 
-const [filterInputData, setFilterInputData] = useState({
-  name: '',
-  phone: '',
-  invoiceNumber: '',
-  date: '',
-  status: '',
-  paymentMode: '',
-  billType: '',
-  fromDate: '',
-  toDate: '',
-  imei: '' // ✅ ADD THIS
-});
+  const [filterInputData, setFilterInputData] = useState({
+    name: '',
+    phone: '',
+    invoiceNumber: '',
+    date: '',
+    status: '',
+    paymentMode: '',
+    billType: '',
+    fromDate: '',
+    toDate: '',
+    imei: '' // ✅ ADD THIS
+  });
 
-const [appliedFilters, setAppliedFilters] = useState({
-  name: '',
-  phone: '',
-  invoiceNumber: '',
-  date: '',
-  status: '',
-  paymentMode: '',
-  billType: '',
-  fromDate: '',
-  toDate: '',
-  imei: '' // ✅ ADD THIS
-});
+  const [appliedFilters, setAppliedFilters] = useState({
+    name: '',
+    phone: '',
+    invoiceNumber: '',
+    date: '',
+    status: '',
+    paymentMode: '',
+    billType: '',
+    fromDate: '',
+    toDate: '',
+    imei: '' // ✅ ADD THIS
+  });
 
   // Update your stockFormData state to include error messages
   const [stockFormData, setStockFormData] = useState([{
@@ -241,25 +241,25 @@ const [appliedFilters, setAppliedFilters] = useState({
   const [stockItems, setStockItems] = useState([]);
 
   // ✅ ADD: Profit calculation states
-const [profitData, setProfitData] = useState({
-  sales: {
-    dailyProfit: 0,
-    monthlyProfit: 0,
-    totalRevenue: 0
-  },
-  service: {
-    dailyProfit: 0,
-    monthlyProfit: 0,
-    totalRevenue: 0,
-    todayIncome: 0,
-    pendingBalance: 0
-  },
-  multibrand: {
-    dailyProfit: 0,
-    monthlyProfit: 0,
-    totalRevenue: 0
-  }
-});
+  const [profitData, setProfitData] = useState({
+    sales: {
+      dailyProfit: 0,
+      monthlyProfit: 0,
+      totalRevenue: 0
+    },
+    service: {
+      dailyProfit: 0,
+      monthlyProfit: 0,
+      totalRevenue: 0,
+      todayIncome: 0,
+      pendingBalance: 0
+    },
+    multibrand: {
+      dailyProfit: 0,
+      monthlyProfit: 0,
+      totalRevenue: 0
+    }
+  });
 
   // Add this to your state variables
   const [expandedDealer, setExpandedDealer] = useState(null);
@@ -1066,13 +1066,13 @@ const [profitData, setProfitData] = useState({
   };
 
   // ✅ ADD: Calculate total quantity for all products (Service only)
-const calculateTotalQuantityAllProducts = () => {
-  if (shopType !== 'service') return 0;
-  
-  return variants.reduce((total, variant) => {
-    return total + (parseInt(variant.quantity) || 0);
-  }, 0);
-};
+  const calculateTotalQuantityAllProducts = () => {
+    if (shopType !== 'service') return 0;
+
+    return variants.reduce((total, variant) => {
+      return total + (parseInt(variant.quantity) || 0);
+    }, 0);
+  };
 
   // Update the calculateTotalInvestment function
   const calculateTotalInvestment = () => {
@@ -1144,34 +1144,34 @@ const calculateTotalQuantityAllProducts = () => {
     }
   };
 
-// ✅ FIXED: Reset multi-brand filter function
-const handleResetMultiBrandFilter = () => {
-  setFilterInputData({
-    name: '',
-    phone: '',
-    invoiceNumber: '',
-    date: '',
-    status: '',
-    paymentMode: '',
-    billType: '',
-    fromDate: '',
-    toDate: '',
-    imei: '' // ✅ ADDED
-  });
-  setAppliedFilters({
-    name: '',
-    phone: '',
-    invoiceNumber: '',
-    date: '',
-    status: '',
-    paymentMode: '',
-    billType: '',
-    fromDate: '',
-    toDate: '',
-    imei: '' // ✅ ADDED
-  });
-  setFilteredMultiBrandCustomers([]);
-};
+  // ✅ FIXED: Reset multi-brand filter function
+  const handleResetMultiBrandFilter = () => {
+    setFilterInputData({
+      name: '',
+      phone: '',
+      invoiceNumber: '',
+      date: '',
+      status: '',
+      paymentMode: '',
+      billType: '',
+      fromDate: '',
+      toDate: '',
+      imei: '' // ✅ ADDED
+    });
+    setAppliedFilters({
+      name: '',
+      phone: '',
+      invoiceNumber: '',
+      date: '',
+      status: '',
+      paymentMode: '',
+      billType: '',
+      fromDate: '',
+      toDate: '',
+      imei: '' // ✅ ADDED
+    });
+    setFilteredMultiBrandCustomers([]);
+  };
 
   // ✅ FIXED: Invoice number generation with proper parsing
   const generateInvoiceNumber = () => {
@@ -1702,335 +1702,335 @@ const handleResetMultiBrandFilter = () => {
     }, 5000);
   };
 
-// ✅ FIXED: Service filter function - IMEI only for Sales
-const handleApplyFilter = () => {
-  console.log('🔍 Applying customer filter. Shop Type:', shopType, 'IMEI:', filterData.imei);
-  
-  // If no filters are applied, show all customers for current shop type
-  const isAnyFilterApplied = filterData.name || filterData.phone || filterData.invoiceNumber || 
-    filterData.status || filterData.fromDate || filterData.toDate || 
-    filterData.paymentMode || (shopType === 'sales' && filterData.imei);
+  // ✅ FIXED: Service filter function - IMEI only for Sales
+  const handleApplyFilter = () => {
+    console.log('🔍 Applying customer filter. Shop Type:', shopType, 'IMEI:', filterData.imei);
 
-  if (!isAnyFilterApplied) {
-    console.log('No filters applied, showing all customers');
-    // Filter out multi-brand customers for regular view
-    const regularCustomers = allCustomers.filter(customer => customer.billType !== 'multi-brand');
-    setCustomers(regularCustomers);
-    return;
-  }
+    // If no filters are applied, show all customers for current shop type
+    const isAnyFilterApplied = filterData.name || filterData.phone || filterData.invoiceNumber ||
+      filterData.status || filterData.fromDate || filterData.toDate ||
+      filterData.paymentMode || (shopType === 'sales' && filterData.imei);
 
-  // Filter customers on frontend
-  const filteredCustomers = allCustomers.filter(customer => {
-    // Filter out multi-brand customers first
-    if (customer.billType === 'multi-brand') {
-      return false;
+    if (!isAnyFilterApplied) {
+      console.log('No filters applied, showing all customers');
+      // Filter out multi-brand customers for regular view
+      const regularCustomers = allCustomers.filter(customer => customer.billType !== 'multi-brand');
+      setCustomers(regularCustomers);
+      return;
     }
 
-    // Name filter
-    if (filterData.name && !customer.customerName?.toLowerCase().includes(filterData.name.toLowerCase())) {
-      return false;
-    }
-    
-    // Phone filter
-    if (filterData.phone && !customer.phone?.includes(filterData.phone)) {
-      return false;
-    }
-    
-    // Invoice filter
-    if (filterData.invoiceNumber && !customer.invoiceNumber?.toLowerCase().includes(filterData.invoiceNumber.toLowerCase())) {
-      return false;
-    }
-
-    // ✅ FIXED: IMEI filter - ONLY for Sales customers
-    if (shopType === 'sales' && filterData.imei) {
-      const customerImei = customer.imei || '';
-      if (!customerImei.toLowerCase().includes(filterData.imei.toLowerCase())) {
-        console.log('IMEI filter failed:', customerImei, 'does not contain', filterData.imei);
+    // Filter customers on frontend
+    const filteredCustomers = allCustomers.filter(customer => {
+      // Filter out multi-brand customers first
+      if (customer.billType === 'multi-brand') {
         return false;
       }
-      console.log('IMEI filter passed:', customerImei, 'contains', filterData.imei);
-    }
 
-    // Status filter for service
-    if (shopType === 'service' && filterData.status && customer.status !== filterData.status) {
-      return false;
-    }
+      // Name filter
+      if (filterData.name && !customer.customerName?.toLowerCase().includes(filterData.name.toLowerCase())) {
+        return false;
+      }
 
-    // Payment mode filter for sales
-    if (shopType === 'sales' && filterData.paymentMode && customer.paymentMode !== filterData.paymentMode) {
-      return false;
-    }
+      // Phone filter
+      if (filterData.phone && !customer.phone?.includes(filterData.phone)) {
+        return false;
+      }
 
-    // Date range filter
-    if (filterData.fromDate || filterData.toDate) {
-      const customerDate = new Date(customer.date);
-      customerDate.setHours(0, 0, 0, 0);
-      
-      if (filterData.fromDate && isValidDDMMYYYY(filterData.fromDate)) {
-        const fromDate = parseDDMMYYYY(filterData.fromDate);
-        if (fromDate) {
-          fromDate.setHours(0, 0, 0, 0);
-          if (customerDate < fromDate) {
-            return false;
+      // Invoice filter
+      if (filterData.invoiceNumber && !customer.invoiceNumber?.toLowerCase().includes(filterData.invoiceNumber.toLowerCase())) {
+        return false;
+      }
+
+      // ✅ FIXED: IMEI filter - ONLY for Sales customers
+      if (shopType === 'sales' && filterData.imei) {
+        const customerImei = customer.imei || '';
+        if (!customerImei.toLowerCase().includes(filterData.imei.toLowerCase())) {
+          console.log('IMEI filter failed:', customerImei, 'does not contain', filterData.imei);
+          return false;
+        }
+        console.log('IMEI filter passed:', customerImei, 'contains', filterData.imei);
+      }
+
+      // Status filter for service
+      if (shopType === 'service' && filterData.status && customer.status !== filterData.status) {
+        return false;
+      }
+
+      // Payment mode filter for sales
+      if (shopType === 'sales' && filterData.paymentMode && customer.paymentMode !== filterData.paymentMode) {
+        return false;
+      }
+
+      // Date range filter
+      if (filterData.fromDate || filterData.toDate) {
+        const customerDate = new Date(customer.date);
+        customerDate.setHours(0, 0, 0, 0);
+
+        if (filterData.fromDate && isValidDDMMYYYY(filterData.fromDate)) {
+          const fromDate = parseDDMMYYYY(filterData.fromDate);
+          if (fromDate) {
+            fromDate.setHours(0, 0, 0, 0);
+            if (customerDate < fromDate) {
+              return false;
+            }
+          }
+        }
+
+        if (filterData.toDate && isValidDDMMYYYY(filterData.toDate)) {
+          const toDate = parseDDMMYYYY(filterData.toDate);
+          if (toDate) {
+            toDate.setHours(0, 0, 0, 0);
+            if (customerDate > toDate) {
+              return false;
+            }
           }
         }
       }
-      
-      if (filterData.toDate && isValidDDMMYYYY(filterData.toDate)) {
-        const toDate = parseDDMMYYYY(filterData.toDate);
-        if (toDate) {
-          toDate.setHours(0, 0, 0, 0);
-          if (customerDate > toDate) {
-            return false;
-          }
-        }
-      }
-    }
 
-    return true;
-  });
+      return true;
+    });
 
-  console.log('Filtered customers:', filteredCustomers.length);
-  setCustomers(filteredCustomers);
-};
-
-// ✅ Helper function to convert DD/MM/YYYY to Date object
-const parseDDMMYYYY = (dateString) => {
-  if (!dateString) return null;
-  
-  const [day, month, year] = dateString.split('/');
-  if (!day || !month || !year) return null;
-  
-  return new Date(`${year}-${month}-${day}`);
-};
-
-// ✅ Helper function to validate DD/MM/YYYY format
-const isValidDDMMYYYY = (dateString) => {
-  if (!dateString || dateString.length !== 10) return false;
-  
-  const [day, month, year] = dateString.split('/');
-  if (!day || !month || !year) return false;
-  
-  const dayNum = parseInt(day);
-  const monthNum = parseInt(month);
-  const yearNum = parseInt(year);
-  
-  if (dayNum < 1 || dayNum > 31) return false;
-  if (monthNum < 1 || monthNum > 12) return false;
-  if (yearNum < 1900 || yearNum > 2100) return false;
-  
-  return true;
-};
-
-// ✅ FIXED: Reset filter function
-const handleResetFilter = () => {
-  setFilterData({
-    name: '',
-    phone: '',
-    invoiceNumber: '',
-    date: '',
-    status: '',
-    paymentMode: '',
-    billType: '',
-    fromDate: '',
-    toDate: '',
-    imei: '' // ✅ ADDED
-  });
-  
-  // Reset based on current view
-  if (shopType === 'sales') {
-    if (salesFilterTab === 'multibrand') {
-      setFilteredMultiBrandCustomers(multiBrandCustomers);
-    } else if (salesFilterTab === 'stock') {
-      setFilteredStockItems(stockItems);
-    } else {
-      setCustomers(allCustomers.filter(customer => customer.billType !== 'multi-brand'));
-    }
-  } else {
-    setCustomers(allCustomers);
-  }
-};
-
-
-
-// ✅ FIXED: Service profit calculation
-const calculateProfit = () => {
-  const today = new Date().toLocaleDateString();
-  const currentMonth = new Date().getMonth();
-  const currentYear = new Date().getFullYear();
-
-  console.log('🔍 ========== STARTING PROFIT CALCULATION ==========');
-  console.log('📅 Today:', today);
-  console.log('📅 Current Month:', currentMonth + 1, 'Year:', currentYear);
-
-  // Initialize profit data
-  const newProfitData = {
-    sales: { dailyProfit: 0, monthlyProfit: 0, totalRevenue: 0 },
-    service: { dailyProfit: 0, monthlyProfit: 0, totalRevenue: 0, todayIncome: 0, pendingBalance: 0 },
-    multibrand: { dailyProfit: 0, monthlyProfit: 0, totalRevenue: 0 }
+    console.log('Filtered customers:', filteredCustomers.length);
+    setCustomers(filteredCustomers);
   };
 
-  // ==================== SERVICE CUSTOMERS ====================
-  const serviceCustomers = allCustomers.filter(customer => 
-    customer.shopType === 'service'
-  );
+  // ✅ Helper function to convert DD/MM/YYYY to Date object
+  const parseDDMMYYYY = (dateString) => {
+    if (!dateString) return null;
 
-  console.log('👥 Total Service Customers:', serviceCustomers.length);
-  
-  let todayServiceCount = 0;
-  let monthlyServiceCount = 0;
+    const [day, month, year] = dateString.split('/');
+    if (!day || !month || !year) return null;
 
-  serviceCustomers.forEach((customer, index) => {
-    const customerDate = new Date(customer.date);
-    const customerDateStr = customerDate.toLocaleDateString();
-    const isToday = customerDateStr === today;
-    const isThisMonth = customerDate.getMonth() === currentMonth && customerDate.getFullYear() === currentYear;
+    return new Date(`${year}-${month}-${day}`);
+  };
 
-    const serviceIncome = customer.cost || 0;
-    const paidAmount = customer.paidAmount || 0;
-    const balance = customer.balance || 0;
+  // ✅ Helper function to validate DD/MM/YYYY format
+  const isValidDDMMYYYY = (dateString) => {
+    if (!dateString || dateString.length !== 10) return false;
 
-    if (isToday) todayServiceCount++;
-    if (isThisMonth) monthlyServiceCount++;
+    const [day, month, year] = dateString.split('/');
+    if (!day || !month || !year) return false;
 
-    console.log(`\n🔍 SERVICE CUSTOMER ${index + 1}:`);
-    console.log('   Name:', customer.customerName);
-    console.log('   Date:', customerDateStr, '- Today?', isToday, '- This Month?', isThisMonth);
-    console.log('   Brand:', customer.brand);
-    console.log('   Stock:', customer.stock);
-    console.log('   Service Income:', serviceIncome);
-    console.log('   Paid Amount:', paidAmount);
-    console.log('   Balance:', balance);
+    const dayNum = parseInt(day);
+    const monthNum = parseInt(month);
+    const yearNum = parseInt(year);
 
-    // Calculate stock cost for service
-    let stockCost = 0;
-    
-    if (customer.brand && customer.stock) {
-      console.log('   🔍 Looking for variant...');
-      
-      // Get all variants for debugging
-      const allVariants = variants.map(v => ({
-        productName: v.productName,
-        product: v.product?.name,
-        variantName: v.variantName,
-        sellingPrice: v.sellingPrice
-      }));
-      console.log('   All variants:', allVariants);
-      
-      const variant = variants.find(v => {
-        const productMatch = v.productName === customer.brand || v.product?.name === customer.brand;
-        const variantMatch = v.variantName === customer.stock;
-        console.log('   Variant check:', {
-          lookingFor: { brand: customer.brand, stock: customer.stock },
-          currentVariant: { productName: v.productName, product: v.product?.name, variantName: v.variantName },
-          productMatch,
-          variantMatch,
-          matches: productMatch && variantMatch
-        });
-        return productMatch && variantMatch;
-      });
-      
-      if (variant) {
-        stockCost = parseFloat(variant.sellingPrice) || 0;
-        console.log('   ✅ Found variant! Cost:', stockCost);
+    if (dayNum < 1 || dayNum > 31) return false;
+    if (monthNum < 1 || monthNum > 12) return false;
+    if (yearNum < 1900 || yearNum > 2100) return false;
+
+    return true;
+  };
+
+  // ✅ FIXED: Reset filter function
+  const handleResetFilter = () => {
+    setFilterData({
+      name: '',
+      phone: '',
+      invoiceNumber: '',
+      date: '',
+      status: '',
+      paymentMode: '',
+      billType: '',
+      fromDate: '',
+      toDate: '',
+      imei: '' // ✅ ADDED
+    });
+
+    // Reset based on current view
+    if (shopType === 'sales') {
+      if (salesFilterTab === 'multibrand') {
+        setFilteredMultiBrandCustomers(multiBrandCustomers);
+      } else if (salesFilterTab === 'stock') {
+        setFilteredStockItems(stockItems);
       } else {
-        console.log('   ❌ Variant NOT found!');
-        // Show available variants for this brand
-        const brandVariants = variants.filter(v => 
-          v.productName === customer.brand || v.product?.name === customer.brand
-        );
-        console.log('   Available variants for brand:', brandVariants.map(v => ({
-          variantName: v.variantName,
-          sellingPrice: v.sellingPrice
-        })));
+        setCustomers(allCustomers.filter(customer => customer.billType !== 'multi-brand'));
       }
     } else {
-      console.log('   ⚠️ No brand/stock specified');
+      setCustomers(allCustomers);
     }
+  };
 
-    // ✅ FIXED: Calculate profit correctly
-    const profit = serviceIncome - stockCost;
 
-    console.log('   💰 FINAL CALCULATION:');
-    console.log('      Service Income:', serviceIncome);
-    console.log('      Stock Cost:', stockCost);
-    console.log('      Profit:', profit);
 
-    // Update service data
-    newProfitData.service.totalRevenue += serviceIncome;
-    
-    if (isToday) {
-      newProfitData.service.todayIncome += paidAmount;
-      newProfitData.service.dailyProfit += profit; // ✅ Use profit, not serviceIncome
-      console.log('      📈 ADDED to Today - Paid:', paidAmount, 'Profit:', profit);
-    }
-    
-    if (isThisMonth) {
-      newProfitData.service.monthlyProfit += profit; // ✅ Use profit, not serviceIncome
-      console.log('      📈 ADDED to Monthly Profit:', profit);
-    }
-    
-    newProfitData.service.pendingBalance += balance;
-    
-    console.log('   📊 CURRENT TOTALS:');
-    console.log('      Today Income:', newProfitData.service.todayIncome);
-    console.log('      Daily Profit:', newProfitData.service.dailyProfit);
-    console.log('      Monthly Profit:', newProfitData.service.monthlyProfit);
-  });
+  // ✅ FIXED: Service profit calculation
+  const calculateProfit = () => {
+    const today = new Date().toLocaleDateString();
+    const currentMonth = new Date().getMonth();
+    const currentYear = new Date().getFullYear();
 
-  console.log('\n📊 SERVICE SUMMARY:');
-  console.log('   Today Customers:', todayServiceCount);
-  console.log('   Monthly Customers:', monthlyServiceCount);
-  console.log('   Final Service Data:', newProfitData.service);
+    console.log('🔍 ========== STARTING PROFIT CALCULATION ==========');
+    console.log('📅 Today:', today);
+    console.log('📅 Current Month:', currentMonth + 1, 'Year:', currentYear);
 
-  // ==================== SALES & MULTIBRAND (Keep existing) ====================
-  const salesCustomers = allCustomers.filter(customer => 
-    customer.shopType === 'sales' && customer.billType !== 'multi-brand'
-  );
+    // Initialize profit data
+    const newProfitData = {
+      sales: { dailyProfit: 0, monthlyProfit: 0, totalRevenue: 0 },
+      service: { dailyProfit: 0, monthlyProfit: 0, totalRevenue: 0, todayIncome: 0, pendingBalance: 0 },
+      multibrand: { dailyProfit: 0, monthlyProfit: 0, totalRevenue: 0 }
+    };
 
-  salesCustomers.forEach(customer => {
-    const customerDate = new Date(customer.date);
-    const isToday = customerDate.toLocaleDateString() === today;
-    const isThisMonth = customerDate.getMonth() === currentMonth && customerDate.getFullYear() === currentYear;
-    
-    const sellingPrice = customer.cost || 0;
-    const stockItem = stockItems.find(item => item.imei === customer.imei);
-    const costPrice = stockItem?.cost || 0;
-    const profit = sellingPrice - costPrice;
+    // ==================== SERVICE CUSTOMERS ====================
+    const serviceCustomers = allCustomers.filter(customer =>
+      customer.shopType === 'service'
+    );
 
-    newProfitData.sales.totalRevenue += sellingPrice;
-    if (isToday) newProfitData.sales.dailyProfit += profit;
-    if (isThisMonth) newProfitData.sales.monthlyProfit += profit;
-  });
+    console.log('👥 Total Service Customers:', serviceCustomers.length);
 
-  multiBrandCustomers.forEach(customer => {
-    const customerDate = new Date(customer.date);
-    const isToday = customerDate.toLocaleDateString() === today;
-    const isThisMonth = customerDate.getMonth() === currentMonth && customerDate.getFullYear() === currentYear;
-    
-    const sellingPrice = customer.cost || 0;
-    const stockItem = stockItems.find(item => item.imei === customer.imei);
-    const costPrice = stockItem?.cost || 0;
-    const profit = sellingPrice - costPrice;
+    let todayServiceCount = 0;
+    let monthlyServiceCount = 0;
 
-    newProfitData.multibrand.totalRevenue += sellingPrice;
-    if (isToday) newProfitData.multibrand.dailyProfit += profit;
-    if (isThisMonth) newProfitData.multibrand.monthlyProfit += profit;
-  });
+    serviceCustomers.forEach((customer, index) => {
+      const customerDate = new Date(customer.date);
+      const customerDateStr = customerDate.toLocaleDateString();
+      const isToday = customerDateStr === today;
+      const isThisMonth = customerDate.getMonth() === currentMonth && customerDate.getFullYear() === currentYear;
 
-  console.log('\n🎯 FINAL PROFIT DATA:');
-  console.log('   Service:', newProfitData.service);
-  console.log('   Sales:', newProfitData.sales);
-  console.log('   Multibrand:', newProfitData.multibrand);
-  console.log('========== END PROFIT CALCULATION ==========\n');
+      const serviceIncome = customer.cost || 0;
+      const paidAmount = customer.paidAmount || 0;
+      const balance = customer.balance || 0;
 
-  setProfitData(newProfitData);
-};
+      if (isToday) todayServiceCount++;
+      if (isThisMonth) monthlyServiceCount++;
 
-// ✅ ADD: Call this function when data changes
-useEffect(() => {
-  calculateProfit();
-}, [allCustomers, multiBrandCustomers, stockItems]);
+      console.log(`\n🔍 SERVICE CUSTOMER ${index + 1}:`);
+      console.log('   Name:', customer.customerName);
+      console.log('   Date:', customerDateStr, '- Today?', isToday, '- This Month?', isThisMonth);
+      console.log('   Brand:', customer.brand);
+      console.log('   Stock:', customer.stock);
+      console.log('   Service Income:', serviceIncome);
+      console.log('   Paid Amount:', paidAmount);
+      console.log('   Balance:', balance);
+
+      // Calculate stock cost for service
+      let stockCost = 0;
+
+      if (customer.brand && customer.stock) {
+        console.log('   🔍 Looking for variant...');
+
+        // Get all variants for debugging
+        const allVariants = variants.map(v => ({
+          productName: v.productName,
+          product: v.product?.name,
+          variantName: v.variantName,
+          sellingPrice: v.sellingPrice
+        }));
+        console.log('   All variants:', allVariants);
+
+        const variant = variants.find(v => {
+          const productMatch = v.productName === customer.brand || v.product?.name === customer.brand;
+          const variantMatch = v.variantName === customer.stock;
+          console.log('   Variant check:', {
+            lookingFor: { brand: customer.brand, stock: customer.stock },
+            currentVariant: { productName: v.productName, product: v.product?.name, variantName: v.variantName },
+            productMatch,
+            variantMatch,
+            matches: productMatch && variantMatch
+          });
+          return productMatch && variantMatch;
+        });
+
+        if (variant) {
+          stockCost = parseFloat(variant.sellingPrice) || 0;
+          console.log('   ✅ Found variant! Cost:', stockCost);
+        } else {
+          console.log('   ❌ Variant NOT found!');
+          // Show available variants for this brand
+          const brandVariants = variants.filter(v =>
+            v.productName === customer.brand || v.product?.name === customer.brand
+          );
+          console.log('   Available variants for brand:', brandVariants.map(v => ({
+            variantName: v.variantName,
+            sellingPrice: v.sellingPrice
+          })));
+        }
+      } else {
+        console.log('   ⚠️ No brand/stock specified');
+      }
+
+      // ✅ FIXED: Calculate profit correctly
+      const profit = serviceIncome - stockCost;
+
+      console.log('   💰 FINAL CALCULATION:');
+      console.log('      Service Income:', serviceIncome);
+      console.log('      Stock Cost:', stockCost);
+      console.log('      Profit:', profit);
+
+      // Update service data
+      newProfitData.service.totalRevenue += serviceIncome;
+
+      if (isToday) {
+        newProfitData.service.todayIncome += paidAmount;
+        newProfitData.service.dailyProfit += profit; // ✅ Use profit, not serviceIncome
+        console.log('      📈 ADDED to Today - Paid:', paidAmount, 'Profit:', profit);
+      }
+
+      if (isThisMonth) {
+        newProfitData.service.monthlyProfit += profit; // ✅ Use profit, not serviceIncome
+        console.log('      📈 ADDED to Monthly Profit:', profit);
+      }
+
+      newProfitData.service.pendingBalance += balance;
+
+      console.log('   📊 CURRENT TOTALS:');
+      console.log('      Today Income:', newProfitData.service.todayIncome);
+      console.log('      Daily Profit:', newProfitData.service.dailyProfit);
+      console.log('      Monthly Profit:', newProfitData.service.monthlyProfit);
+    });
+
+    console.log('\n📊 SERVICE SUMMARY:');
+    console.log('   Today Customers:', todayServiceCount);
+    console.log('   Monthly Customers:', monthlyServiceCount);
+    console.log('   Final Service Data:', newProfitData.service);
+
+    // ==================== SALES & MULTIBRAND (Keep existing) ====================
+    const salesCustomers = allCustomers.filter(customer =>
+      customer.shopType === 'sales' && customer.billType !== 'multi-brand'
+    );
+
+    salesCustomers.forEach(customer => {
+      const customerDate = new Date(customer.date);
+      const isToday = customerDate.toLocaleDateString() === today;
+      const isThisMonth = customerDate.getMonth() === currentMonth && customerDate.getFullYear() === currentYear;
+
+      const sellingPrice = customer.cost || 0;
+      const stockItem = stockItems.find(item => item.imei === customer.imei);
+      const costPrice = stockItem?.cost || 0;
+      const profit = sellingPrice - costPrice;
+
+      newProfitData.sales.totalRevenue += sellingPrice;
+      if (isToday) newProfitData.sales.dailyProfit += profit;
+      if (isThisMonth) newProfitData.sales.monthlyProfit += profit;
+    });
+
+    multiBrandCustomers.forEach(customer => {
+      const customerDate = new Date(customer.date);
+      const isToday = customerDate.toLocaleDateString() === today;
+      const isThisMonth = customerDate.getMonth() === currentMonth && customerDate.getFullYear() === currentYear;
+
+      const sellingPrice = customer.cost || 0;
+      const stockItem = stockItems.find(item => item.imei === customer.imei);
+      const costPrice = stockItem?.cost || 0;
+      const profit = sellingPrice - costPrice;
+
+      newProfitData.multibrand.totalRevenue += sellingPrice;
+      if (isToday) newProfitData.multibrand.dailyProfit += profit;
+      if (isThisMonth) newProfitData.multibrand.monthlyProfit += profit;
+    });
+
+    console.log('\n🎯 FINAL PROFIT DATA:');
+    console.log('   Service:', newProfitData.service);
+    console.log('   Sales:', newProfitData.sales);
+    console.log('   Multibrand:', newProfitData.multibrand);
+    console.log('========== END PROFIT CALCULATION ==========\n');
+
+    setProfitData(newProfitData);
+  };
+
+  // ✅ ADD: Call this function when data changes
+  useEffect(() => {
+    calculateProfit();
+  }, [allCustomers, multiBrandCustomers, stockItems]);
 
   // Handle paid amount change - UPDATED with proper balance calculation
   const handlePaidAmountChange = (customerId, value) => {
@@ -2756,106 +2756,106 @@ useEffect(() => {
 
 
 
-// ✅ UPDATE: Stock filter change handler to handle IMEI field
-const handleStockFilterChange = (e) => {
-  const { name, value } = e.target;
-  setStockFilterData(prev => ({
-    ...prev,
-    [name]: value
-  }));
-};
+  // ✅ UPDATE: Stock filter change handler to handle IMEI field
+  const handleStockFilterChange = (e) => {
+    const { name, value } = e.target;
+    setStockFilterData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
 
 
-// ✅ FIXED: Stock filter function with proper IMEI, brand, and model filtering
-const handleApplyStockFilter = () => {
-  const filtered = stockItems.filter(item => {
-    // ✅ FIXED: IMEI filter - search within IMEI numbers
-    if (stockFilterData.imei && !item.imei?.toLowerCase().includes(stockFilterData.imei.toLowerCase())) {
-      return false;
-    }
-
-    // ✅ FIXED: Brand filter - show ALL brands (including sold items)
-    if (stockFilterData.brand) {
-      const itemBrand = item.variant?.product?.name || item.variant?.productName || item.product?.name || item.productName;
-      if (itemBrand?.toLowerCase() !== stockFilterData.brand.toLowerCase()) {
+  // ✅ FIXED: Stock filter function with proper IMEI, brand, and model filtering
+  const handleApplyStockFilter = () => {
+    const filtered = stockItems.filter(item => {
+      // ✅ FIXED: IMEI filter - search within IMEI numbers
+      if (stockFilterData.imei && !item.imei?.toLowerCase().includes(stockFilterData.imei.toLowerCase())) {
         return false;
       }
-    }
 
-    // ✅ FIXED: Model filter - show ALL models (including sold items)
-    if (stockFilterData.model) {
-      const itemModel = item.variant?.variantName || item.variantName;
-      if (itemModel?.toLowerCase() !== stockFilterData.model.toLowerCase()) {
+      // ✅ FIXED: Brand filter - show ALL brands (including sold items)
+      if (stockFilterData.brand) {
+        const itemBrand = item.variant?.product?.name || item.variant?.productName || item.product?.name || item.productName;
+        if (itemBrand?.toLowerCase() !== stockFilterData.brand.toLowerCase()) {
+          return false;
+        }
+      }
+
+      // ✅ FIXED: Model filter - show ALL models (including sold items)
+      if (stockFilterData.model) {
+        const itemModel = item.variant?.variantName || item.variantName;
+        if (itemModel?.toLowerCase() !== stockFilterData.model.toLowerCase()) {
+          return false;
+        }
+      }
+
+      // Status filter
+      if (stockFilterData.status && item.status !== stockFilterData.status) {
         return false;
       }
-    }
 
-    // Status filter
-    if (stockFilterData.status && item.status !== stockFilterData.status) {
-      return false;
-    }
+      // Dealer filter
+      if (stockFilterData.dealer && item.dealer?._id !== stockFilterData.dealer) {
+        return false;
+      }
 
-    // Dealer filter
-    if (stockFilterData.dealer && item.dealer?._id !== stockFilterData.dealer) {
-      return false;
-    }
+      // HSN filter
+      if (stockFilterData.hsn && !item.hsn?.includes(stockFilterData.hsn)) {
+        return false;
+      }
 
-    // HSN filter
-    if (stockFilterData.hsn && !item.hsn?.includes(stockFilterData.hsn)) {
-      return false;
-    }
+      // ✅ FIXED: Date range filter
+      if (stockFilterData.fromDate || stockFilterData.toDate) {
+        const itemDate = new Date(item.createdAt);
+        itemDate.setHours(0, 0, 0, 0);
 
-    // ✅ FIXED: Date range filter
-    if (stockFilterData.fromDate || stockFilterData.toDate) {
-      const itemDate = new Date(item.createdAt);
-      itemDate.setHours(0, 0, 0, 0);
+        if (stockFilterData.fromDate && isValidDDMMYYYY(stockFilterData.fromDate)) {
+          const fromDate = parseDDMMYYYY(stockFilterData.fromDate);
+          if (fromDate) {
+            fromDate.setHours(0, 0, 0, 0);
+            if (itemDate < fromDate) {
+              return false;
+            }
+          }
+        }
 
-      if (stockFilterData.fromDate && isValidDDMMYYYY(stockFilterData.fromDate)) {
-        const fromDate = parseDDMMYYYY(stockFilterData.fromDate);
-        if (fromDate) {
-          fromDate.setHours(0, 0, 0, 0);
-          if (itemDate < fromDate) {
-            return false;
+        if (stockFilterData.toDate && isValidDDMMYYYY(stockFilterData.toDate)) {
+          const toDate = parseDDMMYYYY(stockFilterData.toDate);
+          if (toDate) {
+            toDate.setHours(0, 0, 0, 0);
+            if (itemDate > toDate) {
+              return false;
+            }
           }
         }
       }
 
-      if (stockFilterData.toDate && isValidDDMMYYYY(stockFilterData.toDate)) {
-        const toDate = parseDDMMYYYY(stockFilterData.toDate);
-        if (toDate) {
-          toDate.setHours(0, 0, 0, 0);
-          if (itemDate > toDate) {
-            return false;
-          }
-        }
-      }
-    }
+      return true;
+    });
 
-    return true;
-  });
-  
-  setFilteredStockItems(filtered);
-};
+    setFilteredStockItems(filtered);
+  };
 
   // Initialize with all stock items when component mounts
   useEffect(() => {
     setFilteredStockItems(stockItems);
   }, [stockItems]);
 
-// ✅ FIXED: Reset stock filter function
-const handleResetStockFilter = () => {
-  setStockFilterData({
-    imei: '',
-    brand: '',
-    model: '',
-    status: '',
-    dealer: '',
-    hsn: '',
-    fromDate: '',
-    toDate: ''
-  });
-  setFilteredStockItems(stockItems);
-};
+  // ✅ FIXED: Reset stock filter function
+  const handleResetStockFilter = () => {
+    setStockFilterData({
+      imei: '',
+      brand: '',
+      model: '',
+      status: '',
+      dealer: '',
+      hsn: '',
+      fromDate: '',
+      toDate: ''
+    });
+    setFilteredStockItems(stockItems);
+  };
 
   const handleAddMultiBrandCustomer = async () => {
     // Enhanced validation
@@ -3816,89 +3816,270 @@ const handleResetStockFilter = () => {
   };
 
 
-// ✅ FIXED: Apply multi-brand filter function
-const handleApplyMultiBrandFilter = () => {
-  console.log('🔍 Applying multibrand filters:', filterInputData);
-  console.log('Total multibrand customers:', multiBrandCustomers.length);
+  // ✅ FIXED: Apply multi-brand filter function
+  const handleApplyMultiBrandFilter = () => {
+    console.log('🔍 Applying multibrand filters:', filterInputData);
+    console.log('Total multibrand customers:', multiBrandCustomers.length);
 
-  // Copy input data to applied filters
-  setAppliedFilters({ ...filterInputData });
+    // Copy input data to applied filters
+    setAppliedFilters({ ...filterInputData });
 
-  // If no filters are applied, show all records
-  const isFilterApplied = filterInputData.name || filterInputData.phone || 
-    filterInputData.invoiceNumber || filterInputData.paymentMode || 
-    filterInputData.fromDate || filterInputData.toDate || filterInputData.imei;
+    // If no filters are applied, show all records
+    const isFilterApplied = filterInputData.name || filterInputData.phone ||
+      filterInputData.invoiceNumber || filterInputData.paymentMode ||
+      filterInputData.fromDate || filterInputData.toDate || filterInputData.imei;
 
-  if (!isFilterApplied) {
-    console.log('No filters applied, showing empty list');
-    setFilteredMultiBrandCustomers([]);
+    if (!isFilterApplied) {
+      console.log('No filters applied, showing empty list');
+      setFilteredMultiBrandCustomers([]);
+      return;
+    }
+
+    // Apply the actual filtering
+    const filtered = multiBrandCustomers.filter(customer => {
+      console.log('Checking customer:', customer.customerName, 'IMEI:', customer.imei);
+
+      // Name filter
+      if (filterInputData.name && !customer.customerName?.toLowerCase().includes(filterInputData.name.toLowerCase())) {
+        return false;
+      }
+
+      // Phone filter
+      if (filterInputData.phone && !customer.phone?.includes(filterInputData.phone)) {
+        return false;
+      }
+
+      // Invoice filter
+      if (filterInputData.invoiceNumber && !customer.invoiceNumber?.toLowerCase().includes(filterInputData.invoiceNumber.toLowerCase())) {
+        return false;
+      }
+
+      // ✅ FIXED: IMEI filter - handle empty/null IMEI
+      if (filterInputData.imei) {
+        const customerImei = customer.imei || '';
+        if (!customerImei.toLowerCase().includes(filterInputData.imei.toLowerCase())) {
+          console.log('Multibrand IMEI filter failed:', customerImei, 'does not contain', filterInputData.imei);
+          return false;
+        }
+        console.log('Multibrand IMEI filter passed:', customerImei, 'contains', filterInputData.imei);
+      }
+
+      // Payment mode filter
+      if (filterInputData.paymentMode && customer.paymentMode !== filterInputData.paymentMode) {
+        return false;
+      }
+
+      // Date range filter
+      if (filterInputData.fromDate || filterInputData.toDate) {
+        const customerDate = new Date(customer.date);
+        customerDate.setHours(0, 0, 0, 0);
+
+        if (filterInputData.fromDate && isValidDDMMYYYY(filterInputData.fromDate)) {
+          const fromDate = parseDDMMYYYY(filterInputData.fromDate);
+          if (fromDate) {
+            fromDate.setHours(0, 0, 0, 0);
+            if (customerDate < fromDate) return false;
+          }
+        }
+
+        if (filterInputData.toDate && isValidDDMMYYYY(filterInputData.toDate)) {
+          const toDate = parseDDMMYYYY(filterInputData.toDate);
+          if (toDate) {
+            toDate.setHours(0, 0, 0, 0);
+            if (customerDate > toDate) return false;
+          }
+        }
+      }
+
+      return true;
+    });
+
+    console.log('Filtered multibrand customers:', filtered.length);
+    setFilteredMultiBrandCustomers(filtered);
+  };
+
+// ✅ MODIFIED: Remove auto date from file name
+const exportToExcel = (data, fileName) => {
+  if (!data || data.length === 0) {
+    alert('No data to export');
     return;
   }
 
-  // Apply the actual filtering
-  const filtered = multiBrandCustomers.filter(customer => {
-    console.log('Checking customer:', customer.customerName, 'IMEI:', customer.imei);
+  // Create CSV content
+  let csvContent = 'SNo,Name of Buyer,Buyer GTIN,Commodity Code,Invoiceno,Invoice Date,Sales Value,Taxable,CGST,CGSTAMOUNT,SGST,SGSTAMOUNT,IGST,IGSTAMOUNT\n';
 
-    // Name filter
-    if (filterInputData.name && !customer.customerName?.toLowerCase().includes(filterInputData.name.toLowerCase())) {
-      return false;
-    }
-
-    // Phone filter
-    if (filterInputData.phone && !customer.phone?.includes(filterInputData.phone)) {
-      return false;
-    }
-
-    // Invoice filter
-    if (filterInputData.invoiceNumber && !customer.invoiceNumber?.toLowerCase().includes(filterInputData.invoiceNumber.toLowerCase())) {
-      return false;
-    }
-
-    // ✅ FIXED: IMEI filter - handle empty/null IMEI
-    if (filterInputData.imei) {
-      const customerImei = customer.imei || '';
-      if (!customerImei.toLowerCase().includes(filterInputData.imei.toLowerCase())) {
-        console.log('Multibrand IMEI filter failed:', customerImei, 'does not contain', filterInputData.imei);
-        return false;
-      }
-      console.log('Multibrand IMEI filter passed:', customerImei, 'contains', filterInputData.imei);
-    }
-
-    // Payment mode filter
-    if (filterInputData.paymentMode && customer.paymentMode !== filterInputData.paymentMode) {
-      return false;
-    }
-
-    // Date range filter
-    if (filterInputData.fromDate || filterInputData.toDate) {
-      const customerDate = new Date(customer.date);
-      customerDate.setHours(0, 0, 0, 0);
-
-      if (filterInputData.fromDate && isValidDDMMYYYY(filterInputData.fromDate)) {
-        const fromDate = parseDDMMYYYY(filterInputData.fromDate);
-        if (fromDate) {
-          fromDate.setHours(0, 0, 0, 0);
-          if (customerDate < fromDate) return false;
-        }
-      }
-
-      if (filterInputData.toDate && isValidDDMMYYYY(filterInputData.toDate)) {
-        const toDate = parseDDMMYYYY(filterInputData.toDate);
-        if (toDate) {
-          toDate.setHours(0, 0, 0, 0);
-          if (customerDate > toDate) return false;
-        }
-      }
-    }
-
-    return true;
+  // Add data rows
+  data.forEach((item, index) => {
+    const row = [
+      index + 1, // SNo
+      `"${item.customerName || ''}"`, // Name of Buyer
+      `"${item.gstNumber || ''}"`, // Buyer GTIN
+      '', // Commodity Code (empty)
+      `"${item.invoiceNumber || ''}"`, // Invoiceno
+      `"${formatDateForExcel(item.date)}"`, // Invoice Date
+      item.cost || '0', // Sales Value
+      calculateTaxableValue(item.cost), // Taxable
+      '9', // CGST (assuming 9%)
+      calculateCGSTAmount(item.cost), // CGSTAMOUNT
+      '9', // SGST (assuming 9%)
+      calculateSGSTAmount(item.cost), // SGSTAMOUNT
+      '0', // IGST
+      '0'  // IGSTAMOUNT
+    ].join(',');
+    
+    csvContent += row + '\n';
   });
 
-  console.log('Filtered multibrand customers:', filtered.length);
-  setFilteredMultiBrandCustomers(filtered);
+  // Create and download file
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  const link = document.createElement('a');
+  const url = URL.createObjectURL(blob);
+  
+  // ✅ MODIFIED: Just use the provided fileName without adding extra date
+  link.setAttribute('href', url);
+  link.setAttribute('download', `${fileName}.csv`);
+  link.style.visibility = 'hidden';
+  
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
 };
 
-const handleWhatsAppPDF = async (customerId) => {
+  // ✅ ADD: Helper function to format date for Excel
+  const formatDateForExcel = (dateString) => {
+    if (!dateString) return '';
+    const date = new Date(dateString);
+    const day = date.getDate().toString().padStart(2, '0');
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const year = date.getFullYear();
+    return `${day}/${month}/${year}`;
+  };
+
+  // ✅ ADD: Calculate taxable value (assuming 18% GST)
+  const calculateTaxableValue = (total) => {
+    const amount = parseFloat(total) || 0;
+    return (amount / 1.18).toFixed(2);
+  };
+
+  // ✅ ADD: Calculate CGST amount (9% of taxable)
+  const calculateCGSTAmount = (total) => {
+    const taxable = parseFloat(calculateTaxableValue(total));
+    return (taxable * 0.09).toFixed(2);
+  };
+
+  // ✅ ADD: Calculate SGST amount (9% of taxable)
+  const calculateSGSTAmount = (total) => {
+    const taxable = parseFloat(calculateTaxableValue(total));
+    return (taxable * 0.09).toFixed(2);
+  };
+
+// ✅ FIXED: Date range inclusion issue
+const getFilteredDataForExport = () => {
+  if (shopType === 'sales' && salesFilterTab === 'multibrand') {
+    // For multibrand records
+    const customersToExport = filteredMultiBrandCustomers.length > 0 
+      ? filteredMultiBrandCustomers 
+      : (appliedFilters.name || appliedFilters.phone || appliedFilters.invoiceNumber || 
+         appliedFilters.paymentMode || appliedFilters.fromDate || appliedFilters.toDate || 
+         appliedFilters.imei ? [] : multiBrandCustomers);
+    
+    // Apply date filter if provided
+    let filteredData = customersToExport;
+    
+    if (filterInputData.fromDate || filterInputData.toDate) {
+      filteredData = customersToExport.filter(customer => {
+        const customerDate = new Date(customer.date);
+        customerDate.setHours(0, 0, 0, 0);
+        
+        if (filterInputData.fromDate && isValidDDMMYYYY(filterInputData.fromDate)) {
+          const fromDate = parseDDMMYYYY(filterInputData.fromDate);
+          if (fromDate) {
+            fromDate.setHours(0, 0, 0, 0);
+            // ✅ FIX: Use <= instead of < to include fromDate
+            if (customerDate < fromDate) return false;
+          }
+        }
+        
+        if (filterInputData.toDate && isValidDDMMYYYY(filterInputData.toDate)) {
+          const toDate = parseDDMMYYYY(filterInputData.toDate);
+          if (toDate) {
+            toDate.setHours(23, 59, 59, 999); // Include entire toDate
+            // ✅ FIX: Use <= instead of < to include toDate
+            if (customerDate > toDate) return false;
+          }
+        }
+        
+        return true;
+      });
+    }
+    
+    return filteredData;
+  } else {
+    // For regular customer records
+    const customersToExport = customers;
+    
+    // Apply date filter if provided
+    let filteredData = customersToExport;
+    
+    if (filterData.fromDate || filterData.toDate) {
+      filteredData = customersToExport.filter(customer => {
+        const customerDate = new Date(customer.date);
+        customerDate.setHours(0, 0, 0, 0);
+        
+        if (filterData.fromDate && isValidDDMMYYYY(filterData.fromDate)) {
+          const fromDate = parseDDMMYYYY(filterData.fromDate);
+          if (fromDate) {
+            fromDate.setHours(0, 0, 0, 0);
+            // ✅ FIX: Use <= instead of < to include fromDate
+            if (customerDate < fromDate) return false;
+          }
+        }
+        
+        if (filterData.toDate && isValidDDMMYYYY(filterData.toDate)) {
+          const toDate = parseDDMMYYYY(filterData.toDate);
+          if (toDate) {
+            toDate.setHours(23, 59, 59, 999); // Include entire toDate
+            // ✅ FIX: Use <= instead of < to include toDate
+            if (customerDate > toDate) return false;
+          }
+        }
+        
+        return true;
+      });
+    }
+    
+    return filteredData;
+  }
+};
+
+// ✅ MODIFIED: File naming with date of downloading
+const handleExportToExcel = () => {
+  const data = getFilteredDataForExport();
+  
+  if (data.length === 0) {
+    alert('No records to export. Please apply filters or check if there are records available.');
+    return;
+  }
+  
+  // Get current date in format: 10 Nov 2025
+  const today = new Date();
+  const day = today.getDate().toString().padStart(2, '0');
+  const month = today.toLocaleDateString('en-US', { month: 'short' });
+  const year = today.getFullYear();
+  const currentDate = `${day} ${month} ${year}`;
+  
+  // Determine file name based on tab
+  let fileName;
+  if (shopType === 'sales' && salesFilterTab === 'multibrand') {
+    fileName = `${currentDate} GST Bill - Multibrandbill`;
+  } else if (shopType === 'sales') {
+    fileName = `${currentDate} GST Bill - Customer bill`;
+  }
+  
+  exportToExcel(data, fileName);
+};
+
+  const handleWhatsAppPDF = async (customerId) => {
     setActionStatus(prev => ({
       ...prev,
       [customerId]: '❗ Checking WhatsApp connection...'
@@ -5284,14 +5465,14 @@ const handleWhatsAppPDF = async (customerId) => {
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center">
                   <div className="w-2 h-6 bg-orange-500 rounded-full mr-2"></div>
-        <h2 className="text-xl font-bold text-gray-800">
-          {/* ✅ DYNAMIC HEADING BASED ON CURRENT TAB */}
-          {shopType === 'service' ? 'Filter Service Records' : 
-           shopType === 'sales' && salesFilterTab === 'customer' ? 'Filter Sales Customer Records' :
-           shopType === 'sales' && salesFilterTab === 'stock' ? 'Filter Stock Records' :
-           shopType === 'sales' && salesFilterTab === 'multibrand' ? 'Filter Multibrand Records' :
-           'Filter Records'}
-        </h2>
+                  <h2 className="text-xl font-bold text-gray-800">
+                    {/* ✅ DYNAMIC HEADING BASED ON CURRENT TAB */}
+                    {shopType === 'service' ? 'Filter Service Records' :
+                      shopType === 'sales' && salesFilterTab === 'customer' ? 'Filter Sales Customer Records' :
+                        shopType === 'sales' && salesFilterTab === 'stock' ? 'Filter Stock Records' :
+                          shopType === 'sales' && salesFilterTab === 'multibrand' ? 'Filter Multibrand Records' :
+                            'Filter Records'}
+                  </h2>
                 </div>
 
                 {/* Tabs for Sales Shop Type */}
@@ -5300,8 +5481,8 @@ const handleWhatsAppPDF = async (customerId) => {
                     <span
                       onClick={() => setSalesFilterTab('customer')}
                       className={`px-4 py-2 rounded-md text-sm font-semibold transition-all duration-200 cursor-pointer ${salesFilterTab === 'customer'
-                          ? 'bg-black text-white shadow-sm'
-                          : 'text-black bg-black/10 hover:text-orange-600'
+                        ? 'bg-black text-white shadow-sm'
+                        : 'text-black bg-black/10 hover:text-orange-600'
                         }`}
                     >
                       👤 Customer Records
@@ -5309,8 +5490,8 @@ const handleWhatsAppPDF = async (customerId) => {
                     <span
                       onClick={() => setSalesFilterTab('stock')}
                       className={`px-4 py-2 rounded-md text-sm font-semibold transition-all duration-200 cursor-pointer ${salesFilterTab === 'stock'
-                          ? 'bg-black text-white shadow-sm'
-                          : 'text-black bg-black/10 hover:text-orange-600'
+                        ? 'bg-black text-white shadow-sm'
+                        : 'text-black bg-black/10 hover:text-orange-600'
                         }`}
                     >
                       📦 Stock Records
@@ -5318,8 +5499,8 @@ const handleWhatsAppPDF = async (customerId) => {
                     <span
                       onClick={() => setSalesFilterTab('multibrand')}
                       className={`px-4 py-2 rounded-md text-sm font-semibold transition-all duration-200 cursor-pointer ${salesFilterTab === 'multibrand'
-                          ? 'bg-black text-white shadow-sm'
-                          : 'text-black bg-black/10 hover:text-orange-600'
+                        ? 'bg-black text-white shadow-sm'
+                        : 'text-black bg-black/10 hover:text-orange-600'
                         }`}
                     >
                       🏪 Multibrand Records
@@ -5536,89 +5717,89 @@ const handleWhatsAppPDF = async (customerId) => {
                   </div>
 
                   {shopType === 'sales' && salesFilterTab === 'customer' && (
-      <div className="space-y-1">
-        <label className="block text-xs font-semibold text-gray-700 mb-1">
-          📱 IMEI Number
-        </label>
-        <input
-          type="text"
-          name="imei"
-          value={filterData.imei}
-          onChange={(e) => {
-            const trimmedValue = e.target.value.replace(/^\s+/, '');
-            setFilterData(prev => ({
-              ...prev,
-              imei: trimmedValue
-            }));
-          }}
-          onKeyPress={(e) => e.key === 'Enter' && handleApplyFilter()}
-          className="text-gray-800 w-full h-10 border border-gray-300 rounded-lg px-3 focus:outline-none focus:border-orange-500 transition-all duration-200"
-          placeholder="Search by IMEI"
-        />
-      </div>
-    )}
+                    <div className="space-y-1">
+                      <label className="block text-xs font-semibold text-gray-700 mb-1">
+                        📱 IMEI Number
+                      </label>
+                      <input
+                        type="text"
+                        name="imei"
+                        value={filterData.imei}
+                        onChange={(e) => {
+                          const trimmedValue = e.target.value.replace(/^\s+/, '');
+                          setFilterData(prev => ({
+                            ...prev,
+                            imei: trimmedValue
+                          }));
+                        }}
+                        onKeyPress={(e) => e.key === 'Enter' && handleApplyFilter()}
+                        className="text-gray-800 w-full h-10 border border-gray-300 rounded-lg px-3 focus:outline-none focus:border-orange-500 transition-all duration-200"
+                        placeholder="Search by IMEI"
+                      />
+                    </div>
+                  )}
                 </div>
               )}
 
-{/* Stock Records Filter - Show only for Sales when stock tab is selected */}
-{shopType === 'sales' && salesFilterTab === 'stock' && (
-  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
-    {/* ✅ ADDED: IMEI Search Field */}
-    <div className="space-y-1">
-      <label className="block text-xs font-semibold text-gray-700 mb-1">
-        📱 IMEI Number
-      </label>
-      <input
-        type="text"
-        name="imei"
-        value={stockFilterData.imei}
-        onChange={handleStockFilterChange}
-        onKeyPress={(e) => e.key === 'Enter' && handleApplyStockFilter()}
-        className="text-gray-800 w-full h-10 border border-gray-300 rounded-lg px-3 focus:outline-none focus:border-orange-500 transition-all duration-200"
-        placeholder="Search by IMEI"
-      />
-    </div>
+              {/* Stock Records Filter - Show only for Sales when stock tab is selected */}
+              {shopType === 'sales' && salesFilterTab === 'stock' && (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+                  {/* ✅ ADDED: IMEI Search Field */}
+                  <div className="space-y-1">
+                    <label className="block text-xs font-semibold text-gray-700 mb-1">
+                      📱 IMEI Number
+                    </label>
+                    <input
+                      type="text"
+                      name="imei"
+                      value={stockFilterData.imei}
+                      onChange={handleStockFilterChange}
+                      onKeyPress={(e) => e.key === 'Enter' && handleApplyStockFilter()}
+                      className="text-gray-800 w-full h-10 border border-gray-300 rounded-lg px-3 focus:outline-none focus:border-orange-500 transition-all duration-200"
+                      placeholder="Search by IMEI"
+                    />
+                  </div>
 
-    <div className="space-y-1">
-      <label className="block text-xs font-semibold text-gray-700 mb-1">
-        🏷️ Brand
-      </label>
-      <select
-        name="brand"
-        value={stockFilterData.brand}
-        onChange={handleStockFilterChange}
-        className="text-gray-800 w-full h-10 border border-gray-300 rounded-lg px-3 focus:outline-none focus:border-orange-500 transition-all duration-200 bg-white"
-      >
-        <option value="">All Brands</option>
-        {products.map((product) => (
-          <option key={product._id} value={product.name}>
-            {product.name}
-          </option>
-        ))}
-      </select>
-    </div>
+                  <div className="space-y-1">
+                    <label className="block text-xs font-semibold text-gray-700 mb-1">
+                      🏷️ Brand
+                    </label>
+                    <select
+                      name="brand"
+                      value={stockFilterData.brand}
+                      onChange={handleStockFilterChange}
+                      className="text-gray-800 w-full h-10 border border-gray-300 rounded-lg px-3 focus:outline-none focus:border-orange-500 transition-all duration-200 bg-white"
+                    >
+                      <option value="">All Brands</option>
+                      {products.map((product) => (
+                        <option key={product._id} value={product.name}>
+                          {product.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
 
-    <div className="space-y-1">
-      <label className="block text-xs font-semibold text-gray-700 mb-1">
-        📱 Model
-      </label>
-      <select
-        name="model"
-        value={stockFilterData.model}
-        onChange={handleStockFilterChange}
-        className="text-gray-800 w-full h-10 border border-gray-300 rounded-lg px-3 focus:outline-none focus:border-orange-500 transition-all duration-200 bg-white"
-      >
-        <option value="">All Models</option>
-        {variants
-          .filter(v => v.shopType === 'sales')
-          .map((variant) => (
-            <option key={variant._id} value={variant.variantName}>
-              {variant.variantName}
-            </option>
-          ))
-        }
-      </select>
-    </div>
+                  <div className="space-y-1">
+                    <label className="block text-xs font-semibold text-gray-700 mb-1">
+                      📱 Model
+                    </label>
+                    <select
+                      name="model"
+                      value={stockFilterData.model}
+                      onChange={handleStockFilterChange}
+                      className="text-gray-800 w-full h-10 border border-gray-300 rounded-lg px-3 focus:outline-none focus:border-orange-500 transition-all duration-200 bg-white"
+                    >
+                      <option value="">All Models</option>
+                      {variants
+                        .filter(v => v.shopType === 'sales')
+                        .map((variant) => (
+                          <option key={variant._id} value={variant.variantName}>
+                            {variant.variantName}
+                          </option>
+                        ))
+                      }
+                    </select>
+                  </div>
 
                   <div className="space-y-1">
                     <label className="block text-xs font-semibold text-gray-700 mb-1">
@@ -5970,76 +6151,92 @@ const handleWhatsAppPDF = async (customerId) => {
                   </div>
 
                   <div className="space-y-1">
-      <label className="block text-xs font-semibold text-gray-700 mb-1">
-        📱 IMEI Number
-      </label>
-      <input
-        type="text"
-        name="imei"
-        value={filterInputData.imei}
-        onChange={(e) => {
-          const trimmedValue = e.target.value.replace(/^\s+/, '');
-          setFilterInputData(prev => ({
-            ...prev,
-            imei: trimmedValue
-          }));
-        }}
-        onKeyPress={(e) => e.key === 'Enter' && handleApplyMultiBrandFilter()}
-        className="text-gray-800 w-full h-10 border border-gray-300 rounded-lg px-3 focus:outline-none focus:border-orange-500 transition-all duration-200"
-        placeholder="Search by IMEI"
-      />
-    </div>
+                    <label className="block text-xs font-semibold text-gray-700 mb-1">
+                      📱 IMEI Number
+                    </label>
+                    <input
+                      type="text"
+                      name="imei"
+                      value={filterInputData.imei}
+                      onChange={(e) => {
+                        const trimmedValue = e.target.value.replace(/^\s+/, '');
+                        setFilterInputData(prev => ({
+                          ...prev,
+                          imei: trimmedValue
+                        }));
+                      }}
+                      onKeyPress={(e) => e.key === 'Enter' && handleApplyMultiBrandFilter()}
+                      className="text-gray-800 w-full h-10 border border-gray-300 rounded-lg px-3 focus:outline-none focus:border-orange-500 transition-all duration-200"
+                      placeholder="Search by IMEI"
+                    />
+                  </div>
                 </div>
               )}
 
-              <div className="flex gap-3 mt-4 justify-end">
-                {shopType === 'sales' && salesFilterTab === 'stock' ? (
-                  <>
-                    <span
-                      onClick={handleApplyStockFilter}
-                      className="bg-gradient-to-r from-orange-600 to-amber-600 text-white px-4 py-2 rounded-lg hover:from-orange-700 hover:to-amber-700 transition-all duration-300 font-semibold text-md shadow hover:shadow-md flex items-center gap-1 cursor-pointer"
-                    >
-                      <span>🔍 Apply Stock Filter</span>
-                    </span>
-                    <span
-                      onClick={handleResetStockFilter}
-                      className="bg-gradient-to-r from-gray-500 to-gray-600 text-white px-4 py-2 rounded-lg hover:from-gray-600 hover:to-gray-700 transition-all duration-300 font-semibold text-md shadow hover:shadow-md flex items-center gap-1 cursor-pointer"
-                    >
-                      <span>🔄 Reset Stock Filter</span>
-                    </span>
-                  </>
-                ) : shopType === 'sales' && salesFilterTab === 'multibrand' ? (
-                  <>
-                    <span
-                      onClick={handleApplyMultiBrandFilter}
-                      className="bg-gradient-to-r from-orange-600 to-amber-600 text-white px-4 py-2 rounded-lg hover:from-orange-700 hover:to-amber-700 transition-all duration-300 font-semibold text-md shadow hover:shadow-md flex items-center gap-1 cursor-pointer"
-                    >
-                      <span>🔍 Apply Multibrand Filter</span>
-                    </span>
-<span
-  onClick={handleResetMultiBrandFilter}
-  className="bg-gradient-to-r from-gray-500 to-gray-600 text-white px-4 py-2 rounded-lg hover:from-gray-600 hover:to-gray-700 transition-all duration-300 font-semibold text-md shadow hover:shadow-md flex items-center gap-1 cursor-pointer"
->
-  <span>🔄 Reset Multibrand Filter</span>
-</span>
-                  </>
-                ) : (
-                  <>
-                    <span
-                      onClick={handleApplyFilter}
-                      className="bg-gradient-to-r from-orange-600 to-amber-600 text-white px-4 py-2 rounded-lg hover:from-orange-700 hover:to-amber-700 transition-all duration-300 font-semibold text-md shadow hover:shadow-md flex items-center gap-1 cursor-pointer"
-                    >
-                      <span>🔍 Apply Filter</span>
-                    </span>
-                    <span
-                      onClick={handleResetFilter}
-                      className="bg-gradient-to-r from-gray-500 to-gray-600 text-white px-4 py-2 rounded-lg hover:from-gray-600 hover:to-gray-700 transition-all duration-300 font-semibold text-md shadow hover:shadow-md flex items-center gap-1 cursor-pointer"
-                    >
-                      <span>🔄 Reset</span>
-                    </span>
-                  </>
-                )}
-              </div>
+{/* ✅ REARRANGED: Export on left, Apply/Reset on right */}
+<div className="flex justify-between items-center mt-4">
+  {/* Left side: Export button */}
+  <div>
+    {(shopType === 'sales' && salesFilterTab !== 'stock')  ? (
+      <span
+        onClick={handleExportToExcel}
+        className="bg-gradient-to-r from-green-600 to-emerald-600 text-white px-4 py-2 rounded-lg hover:from-green-700 hover:to-emerald-700 transition-all duration-300 font-semibold text-md shadow hover:shadow-md flex items-center gap-1 cursor-pointer"
+      >
+        <span>📊 Export to Excel</span>
+      </span>
+    ) : null}
+  </div>
+
+  {/* Right side: Apply and Reset buttons */}
+  <div className="flex gap-3">
+    {shopType === 'sales' && salesFilterTab === 'stock' ? (
+      <>
+        <span
+          onClick={handleApplyStockFilter}
+          className="bg-gradient-to-r from-orange-600 to-amber-600 text-white px-4 py-2 rounded-lg hover:from-orange-700 hover:to-amber-700 transition-all duration-300 font-semibold text-md shadow hover:shadow-md flex items-center gap-1 cursor-pointer"
+        >
+          <span>🔍 Apply Stock Filter</span>
+        </span>
+        <span
+          onClick={handleResetStockFilter}
+          className="bg-gradient-to-r from-gray-500 to-gray-600 text-white px-4 py-2 rounded-lg hover:from-gray-600 hover:to-gray-700 transition-all duration-300 font-semibold text-md shadow hover:shadow-md flex items-center gap-1 cursor-pointer"
+        >
+          <span>🔄 Reset Stock Filter</span>
+        </span>
+      </>
+    ) : shopType === 'sales' && salesFilterTab === 'multibrand' ? (
+      <>
+        <span
+          onClick={handleApplyMultiBrandFilter}
+          className="bg-gradient-to-r from-orange-600 to-amber-600 text-white px-4 py-2 rounded-lg hover:from-orange-700 hover:to-amber-700 transition-all duration-300 font-semibold text-md shadow hover:shadow-md flex items-center gap-1 cursor-pointer"
+        >
+          <span>🔍 Apply Multibrand Filter</span>
+        </span>
+        <span
+          onClick={handleResetMultiBrandFilter}
+          className="bg-gradient-to-r from-gray-500 to-gray-600 text-white px-4 py-2 rounded-lg hover:from-gray-600 hover:to-gray-700 transition-all duration-300 font-semibold text-md shadow hover:shadow-md flex items-center gap-1 cursor-pointer"
+        >
+          <span>🔄 Reset Multibrand Filter</span>
+        </span>
+      </>
+    ) : (
+      <>
+        <span
+          onClick={handleApplyFilter}
+          className="bg-gradient-to-r from-orange-600 to-amber-600 text-white px-4 py-2 rounded-lg hover:from-orange-700 hover:to-amber-700 transition-all duration-300 font-semibold text-md shadow hover:shadow-md flex items-center gap-1 cursor-pointer"
+        >
+          <span>🔍 Apply Filter</span>
+        </span>
+        <span
+          onClick={handleResetFilter}
+          className="bg-gradient-to-r from-gray-500 to-gray-600 text-white px-4 py-2 rounded-lg hover:from-gray-600 hover:to-gray-700 transition-all duration-300 font-semibold text-md shadow hover:shadow-md flex items-center gap-1 cursor-pointer"
+        >
+          <span>🔄 Reset</span>
+        </span>
+      </>
+    )}
+  </div>
+</div>
             </div>
           )}
 
@@ -6048,246 +6245,246 @@ const handleWhatsAppPDF = async (customerId) => {
             (activeTab === 'filter' && shopType === 'sales' && salesFilterTab === 'multibrand') ? (
             <>
               {/* Multi-brand Customers Table */}
-<div className="bg-white rounded-lg shadow-md overflow-hidden border border-orange-100 mt-4">
-  <div className="p-4">
-    {/* ✅ FIX 2: Added proper header styling like regular customer records */}
-    <div className="flex items-center justify-between mb-4">
-      <div className="flex items-center">
-        <div className="w-2 h-6 bg-orange-500 rounded-full mr-2"></div>
-        <h2 className="text-xl font-bold text-gray-800">
-          Multi-brand Records
-        </h2>
-      </div>
-      <div className="text-xs text-gray-500 bg-orange-50 px-2 py-1 rounded-full">
-        Total: {multiBrandCustomers.length} records
-      </div>
-    </div>
+              <div className="bg-white rounded-lg shadow-md overflow-hidden border border-orange-100 mt-4">
+                <div className="p-4">
+                  {/* ✅ FIX 2: Added proper header styling like regular customer records */}
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center">
+                      <div className="w-2 h-6 bg-orange-500 rounded-full mr-2"></div>
+                      <h2 className="text-xl font-bold text-gray-800">
+                        Multi-brand Records
+                      </h2>
+                    </div>
+                    <div className="text-xs text-gray-500 bg-orange-50 px-2 py-1 rounded-full">
+                      Total: {multiBrandCustomers.length} records
+                    </div>
+                  </div>
 
-    {/* ✅ FIXED: Use appliedFilters to check if filters are active */}
-    {filteredMultiBrandCustomers.length === 0 && (appliedFilters.name || appliedFilters.phone || appliedFilters.invoiceNumber || appliedFilters.paymentMode || appliedFilters.fromDate || appliedFilters.toDate || appliedFilters.imei) ? (
-      <div className="text-center py-8 text-gray-500">
-        <div className="text-4xl mb-2">🔍</div>
-        <p className="text-base font-semibold mb-1">No matching records found</p>
-        <p className="text-xs">Try different search terms or clear filters</p>
-      </div>
-    ) : (multiBrandCustomers.length === 0) ? (
-      <div className="text-center py-8 text-gray-500">
-        <div className="text-4xl mb-2">📋</div>
-        <p className="text-base font-semibold mb-1">No multi-brand records found</p>
-        <p className="text-xs">Add your first multi-brand customer to get started</p>
-      </div>
-    ) : (
-      <div className="overflow-hidden rounded-lg border border-gray-200">
-        {/* ✅ ADDED: Fixed height container with vertical scroll */}
-        <div className="h-100 overflow-y-auto">
-          <div className="overflow-x-auto">
-            <table className="w-full border-collapse">
-              <thead>
-                <tr className="bg-gradient-to-r from-orange-500 to-amber-500 sticky top-0 z-10">
-                  <th className="border border-orange-400 px-3 py-2 text-left font-bold text-white text-xs uppercase tracking-wider rounded-tl-lg">Date & Time</th>
-                  <th className="border border-orange-400 px-3 py-2 text-left font-bold text-white text-xs uppercase">Cashier</th>
-                  <th className="border border-orange-400 px-3 py-2 text-left font-bold text-white text-xs uppercase tracking-wider">Invoice No.</th>
-                  <th className="border border-orange-400 px-3 py-2 text-left font-bold text-white text-xs uppercase tracking-wider">Customer Name</th>
-                  <th className="border border-orange-400 px-3 py-2 text-left font-bold text-white text-xs uppercase tracking-wider">Phone</th>
-                  <th className="border border-orange-400 px-3 py-2 text-left font-bold text-white text-xs uppercase tracking-wider">Brand</th>
-                  <th className="border border-orange-400 px-3 py-2 text-left font-bold text-white text-xs uppercase tracking-wider">Model Item</th>
-                  <th className="border border-orange-400 px-3 py-2 text-left font-bold text-white text-xs uppercase">IMEI</th>
-                  <th className="border border-orange-400 px-3 py-2 text-left font-bold text-white text-xs uppercase">HSN</th>
-                  <th className="border border-orange-400 px-3 py-2 text-left font-bold text-white text-xs uppercase">Supplier</th>
-                  <th className="border border-orange-400 px-3 py-2 text-left font-bold text-white text-xs uppercase tracking-wider w-35">Warranty Days</th>
-                  <th className="border border-orange-400 px-3 py-2 text-center font-bold text-white text-xs uppercase tracking-wider">Payment Mode</th>
-                  <th className="border border-orange-400 px-3 py-2 text-center font-bold text-white text-xs uppercase tracking-wider">Cost (₹)</th>
-                  <th className="border border-orange-400 px-3 py-2 text-center font-bold text-white text-xs uppercase tracking-wider rounded-tr-lg">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {/* ✅ FIX: Use the new grouping function for multi-brand customers */}
-                {getMultiBrandCustomersWithDailyTotals().map((item) => {
-                  if (item.type === 'dailyTotal') {
-                    const dailyData = item.data;
-                    return (
-                      <tr key={item.id} className="bg-blue-50 border-t-2 border-blue-200">
-                        <td className="border border-gray-300 px-3 py-3 font-bold text-blue-800 whitespace-nowrap text-sm">
-                          {new Date(dailyData.date).toLocaleDateString('en-IN', {
-                            day: '2-digit',
-                            month: '2-digit',
-                            year: 'numeric'
-                          })}
-                        </td>
-                        <td colSpan="10" className="border border-gray-300 px-4 py-3 font-bold text-blue-800 text-center text-sm">
-                          📊 Daily Total ({dailyData.count} {dailyData.count === 1 ? 'bill' : 'bills'})
-                        </td>
-                        <td colSpan="2" className="border border-gray-300 px-3 py-3 font-bold text-green-700 whitespace-nowrap text-center">
-                          Daily Income : ₹{dailyData.totalCost.toFixed(2)}
-                        </td>
-                        <td colSpan="2" className="border border-gray-300"></td>
-                      </tr>
-                    );
-                  } else {
-                    const customer = item.data;
-                    return (
-                      <tr key={item.id} className="hover:bg-orange-50 transition-colors duration-200 border-b border-gray-200">
-                        <td className="border border-gray-200 px-3 py-2 whitespace-nowrap text-gray-700 text-sm">
-                          {customer.date ? formatDateTime(customer.date) : new Date().toLocaleString('en-IN', {
-                            day: '2-digit',
-                            month: '2-digit',
-                            year: 'numeric',
-                            hour: '2-digit',
-                            minute: '2-digit',
-                            hour12: true
-                          })}
-                        </td>
-                        <td className="border border-gray-200 px-3 py-2 whitespace-nowrap text-gray-700 text-sm">
-                          {customer.cashier || 'N/A'}
-                        </td>
-                        <td className="border border-gray-200 px-3 py-2 font-mono whitespace-nowrap text-blue-600 bg-blue-50 text-xs">
-                          {customer.invoiceNumber}
-                        </td>
-                        <td className="border border-gray-200 px-3 py-2 whitespace-nowrap text-gray-800 font-medium text-sm">
-                          {customer.customerName}
-                        </td>
-                        <td className="border border-gray-200 px-3 py-2 whitespace-nowrap text-gray-700 text-sm">
-                          {customer.phone}
-                        </td>
-                        <td className="border border-gray-200 px-3 py-2 whitespace-nowrap text-gray-700 text-sm">
-                          {customer.brand || 'N/A'}
-                        </td>
-                        <td className="border border-gray-200 px-3 py-2 whitespace-nowrap text-gray-700 text-sm">
-                          {customer.model || 'N/A'}
-                        </td>
-                        <td className="border border-gray-200 px-3 py-2 whitespace-nowrap text-gray-700 text-sm">
-                          {customer.imei || 'N/A'}
-                        </td>
-                        <td className="border border-gray-200 px-3 py-2 whitespace-nowrap text-gray-700 text-sm">
-                          {(() => {
-                            const stockItem = stockItems.find(item => item.imei === customer.imei);
-                            return stockItem?.hsn || 'N/A';
-                          })()}
-                        </td>
-                        <td className="border border-gray-200 px-3 py-2 whitespace-nowrap text-gray-700 text-sm">
-                          {(() => {
-                            const stockItem = stockItems.find(item => item.imei === customer.imei);
-                            return stockItem?.dealer?.name || 'N/A';
-                          })()}
-                        </td>
-                        <td className="border border-gray-200 px-3 py-2 whitespace-nowrap text-center">
-                          <input
-                            type="number"
-                            value={customer.warrantyDays || ''}
-                            onChange={(e) => handleMultiBrandWarrantyDaysChange(
-                              getMultiBrandCustomersWithDailyTotals().findIndex(i => i.type === 'customer' && i.data === customer),
-                              e.target.value
-                            )}
-                            onBlur={(e) => handleMultiBrandWarrantyDaysSave(
-                              getMultiBrandCustomersWithDailyTotals().findIndex(i => i.type === 'customer' && i.data === customer),
-                              e.target.value
-                            )}
-                            onKeyPress={(e) => e.key === 'Enter' && e.target.blur()}
-                            className="w-16 text-purple-600 text-center font-medium border border-gray-300 rounded px-1 py-1 focus:outline-none focus:border-purple-500 text-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none mx-auto block"
-                            placeholder="0"
-                            min="0"
-                          />
-                        </td>
-                        <td className="border border-gray-200 px-3 py-2 whitespace-nowrap w-40">
-                          <div className="flex justify-center items-center">
-                            <div className={`inline-flex items-center px-3 py-1 rounded-md text-xs font-medium ${customer.paymentMode === 'cash'
-                              ? 'bg-green-50 text-green-700 border-l-4 border-green-500' :
-                              customer.paymentMode === 'gpay'
-                                ? 'bg-blue-50 text-blue-700 border-l-4 border-blue-500' :
-                                'bg-purple-50 text-purple-700 border-l-4 border-purple-500'
-                              }`}>
-                              <div className={`w-2 h-2 rounded-full mr-2 animate-pulse ${customer.paymentMode === 'cash' ? 'bg-green-500' :
-                                customer.paymentMode === 'gpay' ? 'bg-blue-500' :
-                                  'bg-purple-500'
-                                }`}></div>
-                              {customer.paymentMode === 'cash' ? 'Cash' :
-                                customer.paymentMode === 'gpay' ? 'Gpay' :
-                                  `EMI-${getFinanceCompanyShortCode(customer.financeCompany)}`}
-                            </div>
-                          </div>
-                        </td>
-                        <td className="border border-gray-200 px-3 py-2 font-semibold whitespace-nowrap text-green-600 text-base">
-                          ₹{customer.cost.toFixed(2)}
-                        </td>
-                        <td className="border border-gray-200 px-3 py-2 whitespace-nowrap">
-                          <div className="flex items-center gap-2">
-                            <div className="flex gap-1">
-                              <span
-                                onClick={() => handleMultiBrandAction(customer, 'print')}
-                                className="w-15 h-10 bg-black hover:bg-black border border-black justify-center rounded-lg text-xl hover:border-blue-500 text-white px-2 py-1 transition-all duration-200 font-semibold shadow hover:shadow-sm flex items-center gap-1"
-                                title="Print Multi-brand Bill"
-                              >
-                                🖨️
-                              </span>
-                              <span
-                                onClick={() => handleMultiBrandAction(customer, 'download')}
-                                className="w-15 h-10 bg-black hover:bg-black border border-black justify-center rounded-lg text-xl  text-white px-2 py-1   transition-all duration-200 font-semibold shadow hover:shadow-sm flex items-center gap-1"
-                                title="Download PDF"
-                              >
-                                ⬇️
-                              </span>
-                              <span
-                                onClick={() => handleMultiBrandWhatsApp(customer)}
-                                className="w-15 h-10 bg-black hover:bg-black border border-black justify-center rounded-lg text-xl  text-white px-2 py-1  transition-all duration-200 font-semibold shadow hover:shadow-sm flex items-center gap-1"
-                                title="Send via WhatsApp"
-                              >
-                                ✅
-                              </span>
-                            </div>
-                            {multiBrandActionStatus[customer.invoiceNumber] && (
-                              <span className="text-xs text-gray-600 ml-1 bg-gray-100 px-2 py-1 rounded-full">
-                                {multiBrandActionStatus[customer.invoiceNumber]}
-                              </span>
-                            )}
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  }
-                })}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-    )}
-  </div>
-</div>
+                  {/* ✅ FIXED: Use appliedFilters to check if filters are active */}
+                  {filteredMultiBrandCustomers.length === 0 && (appliedFilters.name || appliedFilters.phone || appliedFilters.invoiceNumber || appliedFilters.paymentMode || appliedFilters.fromDate || appliedFilters.toDate || appliedFilters.imei) ? (
+                    <div className="text-center py-8 text-gray-500">
+                      <div className="text-4xl mb-2">🔍</div>
+                      <p className="text-base font-semibold mb-1">No matching records found</p>
+                      <p className="text-xs">Try different search terms or clear filters</p>
+                    </div>
+                  ) : (multiBrandCustomers.length === 0) ? (
+                    <div className="text-center py-8 text-gray-500">
+                      <div className="text-4xl mb-2">📋</div>
+                      <p className="text-base font-semibold mb-1">No multi-brand records found</p>
+                      <p className="text-xs">Add your first multi-brand customer to get started</p>
+                    </div>
+                  ) : (
+                    <div className="overflow-hidden rounded-lg border border-gray-200">
+                      {/* ✅ ADDED: Fixed height container with vertical scroll */}
+                      <div className="h-100 overflow-y-auto">
+                        <div className="overflow-x-auto">
+                          <table className="w-full border-collapse">
+                            <thead>
+                              <tr className="bg-gradient-to-r from-orange-500 to-amber-500 sticky top-0 z-10">
+                                <th className="border border-orange-400 px-3 py-2 text-left font-bold text-white text-xs uppercase tracking-wider rounded-tl-lg">Date & Time</th>
+                                <th className="border border-orange-400 px-3 py-2 text-left font-bold text-white text-xs uppercase">Cashier</th>
+                                <th className="border border-orange-400 px-3 py-2 text-left font-bold text-white text-xs uppercase tracking-wider">Invoice No.</th>
+                                <th className="border border-orange-400 px-3 py-2 text-left font-bold text-white text-xs uppercase tracking-wider">Customer Name</th>
+                                <th className="border border-orange-400 px-3 py-2 text-left font-bold text-white text-xs uppercase tracking-wider">Phone</th>
+                                <th className="border border-orange-400 px-3 py-2 text-left font-bold text-white text-xs uppercase tracking-wider">Brand</th>
+                                <th className="border border-orange-400 px-3 py-2 text-left font-bold text-white text-xs uppercase tracking-wider">Model Item</th>
+                                <th className="border border-orange-400 px-3 py-2 text-left font-bold text-white text-xs uppercase">IMEI</th>
+                                <th className="border border-orange-400 px-3 py-2 text-left font-bold text-white text-xs uppercase">HSN</th>
+                                <th className="border border-orange-400 px-3 py-2 text-left font-bold text-white text-xs uppercase">Supplier</th>
+                                <th className="border border-orange-400 px-3 py-2 text-left font-bold text-white text-xs uppercase tracking-wider w-35">Warranty Days</th>
+                                <th className="border border-orange-400 px-3 py-2 text-center font-bold text-white text-xs uppercase tracking-wider">Payment Mode</th>
+                                <th className="border border-orange-400 px-3 py-2 text-center font-bold text-white text-xs uppercase tracking-wider">Cost (₹)</th>
+                                <th className="border border-orange-400 px-3 py-2 text-center font-bold text-white text-xs uppercase tracking-wider rounded-tr-lg">Actions</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {/* ✅ FIX: Use the new grouping function for multi-brand customers */}
+                              {getMultiBrandCustomersWithDailyTotals().map((item) => {
+                                if (item.type === 'dailyTotal') {
+                                  const dailyData = item.data;
+                                  return (
+                                    <tr key={item.id} className="bg-blue-50 border-t-2 border-blue-200">
+                                      <td className="border border-gray-300 px-3 py-3 font-bold text-blue-800 whitespace-nowrap text-sm">
+                                        {new Date(dailyData.date).toLocaleDateString('en-IN', {
+                                          day: '2-digit',
+                                          month: '2-digit',
+                                          year: 'numeric'
+                                        })}
+                                      </td>
+                                      <td colSpan="10" className="border border-gray-300 px-4 py-3 font-bold text-blue-800 text-center text-sm">
+                                        📊 Daily Total ({dailyData.count} {dailyData.count === 1 ? 'bill' : 'bills'})
+                                      </td>
+                                      <td colSpan="2" className="border border-gray-300 px-3 py-3 font-bold text-green-700 whitespace-nowrap text-center">
+                                        Daily Income : ₹{dailyData.totalCost.toFixed(2)}
+                                      </td>
+                                      <td colSpan="2" className="border border-gray-300"></td>
+                                    </tr>
+                                  );
+                                } else {
+                                  const customer = item.data;
+                                  return (
+                                    <tr key={item.id} className="hover:bg-orange-50 transition-colors duration-200 border-b border-gray-200">
+                                      <td className="border border-gray-200 px-3 py-2 whitespace-nowrap text-gray-700 text-sm">
+                                        {customer.date ? formatDateTime(customer.date) : new Date().toLocaleString('en-IN', {
+                                          day: '2-digit',
+                                          month: '2-digit',
+                                          year: 'numeric',
+                                          hour: '2-digit',
+                                          minute: '2-digit',
+                                          hour12: true
+                                        })}
+                                      </td>
+                                      <td className="border border-gray-200 px-3 py-2 whitespace-nowrap text-gray-700 text-sm">
+                                        {customer.cashier || 'N/A'}
+                                      </td>
+                                      <td className="border border-gray-200 px-3 py-2 font-mono whitespace-nowrap text-blue-600 bg-blue-50 text-xs">
+                                        {customer.invoiceNumber}
+                                      </td>
+                                      <td className="border border-gray-200 px-3 py-2 whitespace-nowrap text-gray-800 font-medium text-sm">
+                                        {customer.customerName}
+                                      </td>
+                                      <td className="border border-gray-200 px-3 py-2 whitespace-nowrap text-gray-700 text-sm">
+                                        {customer.phone}
+                                      </td>
+                                      <td className="border border-gray-200 px-3 py-2 whitespace-nowrap text-gray-700 text-sm">
+                                        {customer.brand || 'N/A'}
+                                      </td>
+                                      <td className="border border-gray-200 px-3 py-2 whitespace-nowrap text-gray-700 text-sm">
+                                        {customer.model || 'N/A'}
+                                      </td>
+                                      <td className="border border-gray-200 px-3 py-2 whitespace-nowrap text-gray-700 text-sm">
+                                        {customer.imei || 'N/A'}
+                                      </td>
+                                      <td className="border border-gray-200 px-3 py-2 whitespace-nowrap text-gray-700 text-sm">
+                                        {(() => {
+                                          const stockItem = stockItems.find(item => item.imei === customer.imei);
+                                          return stockItem?.hsn || 'N/A';
+                                        })()}
+                                      </td>
+                                      <td className="border border-gray-200 px-3 py-2 whitespace-nowrap text-gray-700 text-sm">
+                                        {(() => {
+                                          const stockItem = stockItems.find(item => item.imei === customer.imei);
+                                          return stockItem?.dealer?.name || 'N/A';
+                                        })()}
+                                      </td>
+                                      <td className="border border-gray-200 px-3 py-2 whitespace-nowrap text-center">
+                                        <input
+                                          type="number"
+                                          value={customer.warrantyDays || ''}
+                                          onChange={(e) => handleMultiBrandWarrantyDaysChange(
+                                            getMultiBrandCustomersWithDailyTotals().findIndex(i => i.type === 'customer' && i.data === customer),
+                                            e.target.value
+                                          )}
+                                          onBlur={(e) => handleMultiBrandWarrantyDaysSave(
+                                            getMultiBrandCustomersWithDailyTotals().findIndex(i => i.type === 'customer' && i.data === customer),
+                                            e.target.value
+                                          )}
+                                          onKeyPress={(e) => e.key === 'Enter' && e.target.blur()}
+                                          className="w-16 text-purple-600 text-center font-medium border border-gray-300 rounded px-1 py-1 focus:outline-none focus:border-purple-500 text-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none mx-auto block"
+                                          placeholder="0"
+                                          min="0"
+                                        />
+                                      </td>
+                                      <td className="border border-gray-200 px-3 py-2 whitespace-nowrap w-40">
+                                        <div className="flex justify-center items-center">
+                                          <div className={`inline-flex items-center px-3 py-1 rounded-md text-xs font-medium ${customer.paymentMode === 'cash'
+                                            ? 'bg-green-50 text-green-700 border-l-4 border-green-500' :
+                                            customer.paymentMode === 'gpay'
+                                              ? 'bg-blue-50 text-blue-700 border-l-4 border-blue-500' :
+                                              'bg-purple-50 text-purple-700 border-l-4 border-purple-500'
+                                            }`}>
+                                            <div className={`w-2 h-2 rounded-full mr-2 animate-pulse ${customer.paymentMode === 'cash' ? 'bg-green-500' :
+                                              customer.paymentMode === 'gpay' ? 'bg-blue-500' :
+                                                'bg-purple-500'
+                                              }`}></div>
+                                            {customer.paymentMode === 'cash' ? 'Cash' :
+                                              customer.paymentMode === 'gpay' ? 'Gpay' :
+                                                `EMI-${getFinanceCompanyShortCode(customer.financeCompany)}`}
+                                          </div>
+                                        </div>
+                                      </td>
+                                      <td className="border border-gray-200 px-3 py-2 font-semibold whitespace-nowrap text-green-600 text-base">
+                                        ₹{customer.cost.toFixed(2)}
+                                      </td>
+                                      <td className="border border-gray-200 px-3 py-2 whitespace-nowrap">
+                                        <div className="flex items-center gap-2">
+                                          <div className="flex gap-1">
+                                            <span
+                                              onClick={() => handleMultiBrandAction(customer, 'print')}
+                                              className="w-15 h-10 bg-black hover:bg-black border border-black justify-center rounded-lg text-xl hover:border-blue-500 text-white px-2 py-1 transition-all duration-200 font-semibold shadow hover:shadow-sm flex items-center gap-1"
+                                              title="Print Multi-brand Bill"
+                                            >
+                                              🖨️
+                                            </span>
+                                            <span
+                                              onClick={() => handleMultiBrandAction(customer, 'download')}
+                                              className="w-15 h-10 bg-black hover:bg-black border border-black justify-center rounded-lg text-xl  text-white px-2 py-1   transition-all duration-200 font-semibold shadow hover:shadow-sm flex items-center gap-1"
+                                              title="Download PDF"
+                                            >
+                                              ⬇️
+                                            </span>
+                                            <span
+                                              onClick={() => handleMultiBrandWhatsApp(customer)}
+                                              className="w-15 h-10 bg-black hover:bg-black border border-black justify-center rounded-lg text-xl  text-white px-2 py-1  transition-all duration-200 font-semibold shadow hover:shadow-sm flex items-center gap-1"
+                                              title="Send via WhatsApp"
+                                            >
+                                              ✅
+                                            </span>
+                                          </div>
+                                          {multiBrandActionStatus[customer.invoiceNumber] && (
+                                            <span className="text-xs text-gray-600 ml-1 bg-gray-100 px-2 py-1 rounded-full">
+                                              {multiBrandActionStatus[customer.invoiceNumber]}
+                                            </span>
+                                          )}
+                                        </div>
+                                      </td>
+                                    </tr>
+                                  );
+                                }
+                              })}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
 
-{/* Multibrand Income Summary */}
-{(activeTab === 'multibrand' && shopType === 'sales') || 
- (activeTab === 'filter' && shopType === 'sales' && salesFilterTab === 'multibrand') ? (
-  <div className="bg-white rounded-xl p-4 shadow-lg mt-4 border border-orange-200">
-    <h3 className="text-lg font-bold mb-4 text-center text-gray-800">
-      💰 MULTI-BRAND INCOME SUMMARY
-    </h3>
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-center">
-      <div className="bg-orange-50 rounded-lg p-3 border border-orange-200">
-        <div className="text-2xl font-bold mb-2 text-green-600">
-          ₹{profitData.multibrand.totalRevenue.toFixed(2)}
-        </div>
-        <div className="text-sm font-semibold mb-1 text-gray-700">Multibrand Income</div>
-        <div className="text-xs text-gray-600">Total multibrand revenue</div>
-      </div>
+              {/* Multibrand Income Summary */}
+              {(activeTab === 'multibrand' && shopType === 'sales') ||
+                (activeTab === 'filter' && shopType === 'sales' && salesFilterTab === 'multibrand') ? (
+                <div className="bg-white rounded-xl p-4 shadow-lg mt-4 border border-orange-200">
+                  <h3 className="text-lg font-bold mb-4 text-center text-gray-800">
+                    💰 MULTI-BRAND INCOME SUMMARY
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-center">
+                    <div className="bg-orange-50 rounded-lg p-3 border border-orange-200">
+                      <div className="text-2xl font-bold mb-2 text-green-600">
+                        ₹{profitData.multibrand.totalRevenue.toFixed(2)}
+                      </div>
+                      <div className="text-sm font-semibold mb-1 text-gray-700">Multibrand Income</div>
+                      <div className="text-xs text-gray-600">Total multibrand revenue</div>
+                    </div>
 
-      <div className="bg-orange-50 rounded-lg p-3 border border-orange-200">
-        <div className={`text-2xl font-bold mb-2 ${profitData.multibrand.dailyProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-          ₹{profitData.multibrand.dailyProfit.toFixed(2)}
-        </div>
-        <div className="text-sm font-semibold mb-1 text-gray-700">Daily Profit</div>
-        <div className="text-xs text-gray-600">Today's profit margin</div>
-      </div>
+                    <div className="bg-orange-50 rounded-lg p-3 border border-orange-200">
+                      <div className={`text-2xl font-bold mb-2 ${profitData.multibrand.dailyProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                        ₹{profitData.multibrand.dailyProfit.toFixed(2)}
+                      </div>
+                      <div className="text-sm font-semibold mb-1 text-gray-700">Daily Profit</div>
+                      <div className="text-xs text-gray-600">Today's profit margin</div>
+                    </div>
 
-      <div className="bg-orange-50 rounded-lg p-3 border border-orange-200">
-        <div className={`text-2xl font-bold mb-2 ${profitData.multibrand.monthlyProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-          ₹{profitData.multibrand.monthlyProfit.toFixed(2)}
-        </div>
-        <div className="text-sm font-semibold mb-1 text-gray-700">Monthly Profit</div>
-        <div className="text-xs text-gray-600">This month's profit</div>
-      </div>
-    </div>
-  </div>
-) : null}
+                    <div className="bg-orange-50 rounded-lg p-3 border border-orange-200">
+                      <div className={`text-2xl font-bold mb-2 ${profitData.multibrand.monthlyProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                        ₹{profitData.multibrand.monthlyProfit.toFixed(2)}
+                      </div>
+                      <div className="text-sm font-semibold mb-1 text-gray-700">Monthly Profit</div>
+                      <div className="text-xs text-gray-600">This month's profit</div>
+                    </div>
+                  </div>
+                </div>
+              ) : null}
             </>
           ) : null}
 
@@ -8658,73 +8855,73 @@ Thank you for shopping with us! 🎉`
               </div>
             </div>
 
-{/* Service Income Summary */}
-{shopType === 'service' && (
-  <div className="bg-white rounded-xl p-4 shadow-lg mt-4 border border-orange-200">
-    <h3 className="text-lg font-bold mb-4 text-center text-gray-800">
-      💰 SERVICE INCOME SUMMARY
-    </h3>
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-center">
-      <div className="bg-orange-50 rounded-lg p-3 border border-orange-200 transform hover:scale-105 transition-transform duration-300">
-        <div className="text-xl font-bold mb-2 text-gray-800">
-          ₹{profitData.service.todayIncome.toFixed(2)}
-        </div>
-        <div className="text-sm font-semibold mb-1 text-gray-700">Today's Income</div>
-        <div className="text-xs text-gray-600">Paid amounts today</div>
-      </div>
+            {/* Service Income Summary */}
+            {shopType === 'service' && (
+              <div className="bg-white rounded-xl p-4 shadow-lg mt-4 border border-orange-200">
+                <h3 className="text-lg font-bold mb-4 text-center text-gray-800">
+                  💰 SERVICE INCOME SUMMARY
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-center">
+                  <div className="bg-orange-50 rounded-lg p-3 border border-orange-200 transform hover:scale-105 transition-transform duration-300">
+                    <div className="text-xl font-bold mb-2 text-gray-800">
+                      ₹{profitData.service.todayIncome.toFixed(2)}
+                    </div>
+                    <div className="text-sm font-semibold mb-1 text-gray-700">Today's Income</div>
+                    <div className="text-xs text-gray-600">Paid amounts today</div>
+                  </div>
 
-      <div className="bg-orange-50 rounded-lg p-3 border border-orange-200 transform hover:scale-105 transition-transform duration-300">
-        <div className="text-xl font-bold mb-2 text-red-600">
-          ₹{profitData.service.pendingBalance.toFixed(2)}
-        </div>
-        <div className="text-sm font-semibold mb-1 text-gray-700">Pending Balance</div>
-        <div className="text-xs text-gray-600">Awaiting payment</div>
-      </div>
+                  <div className="bg-orange-50 rounded-lg p-3 border border-orange-200 transform hover:scale-105 transition-transform duration-300">
+                    <div className="text-xl font-bold mb-2 text-red-600">
+                      ₹{profitData.service.pendingBalance.toFixed(2)}
+                    </div>
+                    <div className="text-sm font-semibold mb-1 text-gray-700">Pending Balance</div>
+                    <div className="text-xs text-gray-600">Awaiting payment</div>
+                  </div>
 
-      <div className="bg-orange-50 rounded-lg p-3 border border-orange-200 transform hover:scale-105 transition-transform duration-300">
-        <div className="text-xl font-bold mb-2 text-green-600">
-          ₹{profitData.service.totalRevenue.toFixed(2)}
-        </div>
-        <div className="text-sm font-semibold mb-1 text-gray-700">Service Income</div>
-        <div className="text-xs text-gray-600">Total service revenue</div>
-      </div>
-    </div>
-  </div>
-)}
+                  <div className="bg-orange-50 rounded-lg p-3 border border-orange-200 transform hover:scale-105 transition-transform duration-300">
+                    <div className="text-xl font-bold mb-2 text-green-600">
+                      ₹{profitData.service.totalRevenue.toFixed(2)}
+                    </div>
+                    <div className="text-sm font-semibold mb-1 text-gray-700">Service Income</div>
+                    <div className="text-xs text-gray-600">Total service revenue</div>
+                  </div>
+                </div>
+              </div>
+            )}
 
-{/* Sales Income Summary */}
-{shopType === 'sales' && activeTab !== 'multibrand' && (
-  <div className="bg-white rounded-xl p-4 shadow-lg mt-4 border border-orange-200">
-    <h3 className="text-lg font-bold mb-4 text-center text-gray-800">
-      💰 SALES INCOME SUMMARY
-    </h3>
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-center">
-      <div className="bg-orange-50 rounded-lg p-3 border border-orange-200 transform hover:scale-105 transition-transform duration-300">
-        <div className="text-2xl font-bold mb-2 text-green-600">
-          ₹{profitData.sales.totalRevenue.toFixed(2)}
-        </div>
-        <div className="text-sm font-semibold mb-1 text-gray-700">Sales Income</div>
-        <div className="text-xs text-gray-600">Total sales revenue</div>
-      </div>
+            {/* Sales Income Summary */}
+            {shopType === 'sales' && activeTab !== 'multibrand' && (
+              <div className="bg-white rounded-xl p-4 shadow-lg mt-4 border border-orange-200">
+                <h3 className="text-lg font-bold mb-4 text-center text-gray-800">
+                  💰 SALES INCOME SUMMARY
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-center">
+                  <div className="bg-orange-50 rounded-lg p-3 border border-orange-200 transform hover:scale-105 transition-transform duration-300">
+                    <div className="text-2xl font-bold mb-2 text-green-600">
+                      ₹{profitData.sales.totalRevenue.toFixed(2)}
+                    </div>
+                    <div className="text-sm font-semibold mb-1 text-gray-700">Sales Income</div>
+                    <div className="text-xs text-gray-600">Total sales revenue</div>
+                  </div>
 
-      <div className="bg-orange-50 rounded-lg p-3 border border-orange-200 transform hover:scale-105 transition-transform duration-300">
-        <div className={`text-2xl font-bold mb-2 ${profitData.sales.dailyProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-          ₹{profitData.sales.dailyProfit.toFixed(2)}
-        </div>
-        <div className="text-sm font-semibold mb-1 text-gray-700">Daily Profit</div>
-        <div className="text-xs text-gray-600">Today's profit margin</div>
-      </div>
+                  <div className="bg-orange-50 rounded-lg p-3 border border-orange-200 transform hover:scale-105 transition-transform duration-300">
+                    <div className={`text-2xl font-bold mb-2 ${profitData.sales.dailyProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                      ₹{profitData.sales.dailyProfit.toFixed(2)}
+                    </div>
+                    <div className="text-sm font-semibold mb-1 text-gray-700">Daily Profit</div>
+                    <div className="text-xs text-gray-600">Today's profit margin</div>
+                  </div>
 
-      <div className="bg-orange-50 rounded-lg p-3 border border-orange-200 transform hover:scale-105 transition-transform duration-300">
-        <div className={`text-2xl font-bold mb-2 ${profitData.sales.monthlyProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-          ₹{profitData.sales.monthlyProfit.toFixed(2)}
-        </div>
-        <div className="text-sm font-semibold mb-1 text-gray-700">Monthly Profit</div>
-        <div className="text-xs text-gray-600">This month's profit</div>
-      </div>
-    </div>
-  </div>
-)}
+                  <div className="bg-orange-50 rounded-lg p-3 border border-orange-200 transform hover:scale-105 transition-transform duration-300">
+                    <div className={`text-2xl font-bold mb-2 ${profitData.sales.monthlyProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                      ₹{profitData.sales.monthlyProfit.toFixed(2)}
+                    </div>
+                    <div className="text-sm font-semibold mb-1 text-gray-700">Monthly Profit</div>
+                    <div className="text-xs text-gray-600">This month's profit</div>
+                  </div>
+                </div>
+              </div>
+            )}
 
           </>
           )}
