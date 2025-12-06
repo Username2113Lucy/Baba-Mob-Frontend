@@ -4075,6 +4075,26 @@ const handleExportToExcel = () => {
   } else if (shopType === 'sales') {
     fileName = `${currentDate} GST Bill - Customer bill`;
   }
+
+  // ✅ ADD: Reset date filters after export
+  if (shopType === 'sales' && salesFilterTab === 'multibrand') {
+    setFilterInputData(prev => ({
+      ...prev,
+      fromDate: '',
+      toDate: ''
+    }));
+    setAppliedFilters(prev => ({
+      ...prev,
+      fromDate: '',
+      toDate: ''
+    }));
+  } else {
+    setFilterData(prev => ({
+      ...prev,
+      fromDate: '',
+      toDate: ''
+    }));
+  }
   
   exportToExcel(data, fileName);
 };
