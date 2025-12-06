@@ -3910,22 +3910,23 @@ const exportToExcel = (data, fileName) => {
 
   // Add data rows
   data.forEach((item, index) => {
-    const row = [
-      index + 1, // SNo
-      `"${item.customerName || ''}"`, // Name of Buyer
-      `"${item.gstNumber || ''}"`, // Buyer GTIN
-      '', // Commodity Code (empty)
-      `"${item.invoiceNumber || ''}"`, // Invoiceno
-      `"${formatDateForExcel(item.date)}"`, // Invoice Date
-      item.cost || '0', // Sales Value
-      calculateTaxableValue(item.cost), // Taxable
-      '9', // CGST (assuming 9%)
-      calculateCGSTAmount(item.cost), // CGSTAMOUNT
-      '9', // SGST (assuming 9%)
-      calculateSGSTAmount(item.cost), // SGSTAMOUNT
-      '0', // IGST
-      '0'  // IGSTAMOUNT
-    ].join(',');
+// In your exportToExcel function, update the row creation:
+const row = [
+  index + 1, // SNo
+  `"${item.customerName || ''}"`, // Name of Buyer
+  `"${item.gstNumber || ''}"`, // Buyer GTIN
+  '', // Commodity Code (empty)
+  `"${item.invoiceNumber || ''}"`, // Invoiceno
+  `"${formatDateForExcel(item.date)}"`, // Invoice Date
+  item.cost || '0', // Sales Value
+  calculateTaxableValue(item.cost), // Taxable ✅ CORRECT
+  '9', // CGST rate (9%)
+  calculateCGSTAmount(item.cost), // CGSTAMOUNT ✅ CORRECT
+  '9', // SGST rate (9%)
+  calculateSGSTAmount(item.cost), // SGSTAMOUNT ✅ CORRECT
+  '0', // IGST rate
+  '0'  // IGSTAMOUNT
+].join(',');
     
     csvContent += row + '\n';
   });
@@ -3955,23 +3956,34 @@ const exportToExcel = (data, fileName) => {
     return `${day}/${month}/${year}`;
   };
 
-  // ✅ ADD: Calculate taxable value (assuming 18% GST)
-  const calculateTaxableValue = (total) => {
-    const amount = parseFloat(total) || 0;
-    return (amount / 1.18).toFixed(2);
-  };
+// ✅ CORRECT: Calculate taxable value (Total ÷ 1.18)
+const calculateTaxableValue = (total) => {
+  const amount = parseFloat(total) || 0;
+  return (amount / 1.18).toFixed(2);
+};
 
-  // ✅ ADD: Calculate CGST amount (9% of taxable)
-  const calculateCGSTAmount = (total) => {
-    const taxable = parseFloat(calculateTaxableValue(total));
-    return (taxable * 0.09).toFixed(2);
-  };
+// ✅ CORRECT: Calculate total GST amount (Total - Taxable)
+const calculateGSTAmount = (total) => {
+  const amount = parseFloat(total) || 0;
+  const taxable = amount / 1.18;
+  return (amount - taxable).toFixed(2);
+};
 
-  // ✅ ADD: Calculate SGST amount (9% of taxable)
-  const calculateSGSTAmount = (total) => {
-    const taxable = parseFloat(calculateTaxableValue(total));
-    return (taxable * 0.09).toFixed(2);
-  };
+// ✅ CORRECT: Calculate CGST amount (9% of taxable OR totalGST ÷ 2)
+const calculateCGSTAmount = (total) => {
+  const amount = parseFloat(total) || 0;
+  const taxable = amount / 1.18;
+  const totalGST = amount - taxable;
+  return (totalGST / 2).toFixed(2);
+};
+
+// ✅ CORRECT: Calculate SGST amount (9% of taxable OR totalGST ÷ 2)
+const calculateSGSTAmount = (total) => {
+  const amount = parseFloat(total) || 0;
+  const taxable = amount / 1.18;
+  const totalGST = amount - taxable;
+  return (totalGST / 2).toFixed(2);
+};
 
 // ✅ FIXED: Date range inclusion issue
 const getFilteredDataForExport = () => {
