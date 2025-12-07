@@ -1185,7 +1185,7 @@ export const Billing_page = () => {
 
     // If no customers, start from 001
     if (shopCustomers.length === 0) {
-      return shopType === 'sales' ? 'B25-26-001' : 'SV25-26-001';
+      return shopType === 'sales' ? 'B25-26-837' : 'SV25-26-001';
     }
 
     // Extract numbers from existing invoice numbers and find the latest
