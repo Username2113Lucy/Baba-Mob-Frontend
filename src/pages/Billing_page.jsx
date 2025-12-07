@@ -1287,17 +1287,15 @@ export const Billing_page = () => {
     }
   };
 
-  // Format name to Title Case
-  const handleNameChange = (e) => {
-    const value = e.target.value;
-    const titleCaseValue = value.toLowerCase().split(' ')
-      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-      .join(' ');
-    setCustomerData(prev => ({
-      ...prev,
-      name: titleCaseValue
-    }));
-  };
+// Format name to ALL CAPS
+const handleNameChange = (e) => {
+  const value = e.target.value;
+  const upperCaseValue = value.toUpperCase(); // Change to ALL CAPS
+  setCustomerData(prev => ({
+    ...prev,
+    name: upperCaseValue
+  }));
+};
 
   // ✅ UPDATED: Get ALL available IMEIs (independent of model)
   const getAvailableIMEIs = (formType = 'regular') => {
@@ -4999,25 +4997,27 @@ const handleExportToExcel = () => {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {/* Customer Name */}
-                  <div className="space-y-1">
-                    <label className="block text-xs font-semibold text-gray-700 mb-1">
-                      👤 Customer Name *
-                    </label>
-                    <input
-                      type="text"
-                      value={multiBrandData.name}
-                      onChange={(e) => {
-                        const value = e.target.value;
-                        const titleCaseValue = value.toLowerCase().split(' ')
-                          .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-                          .join(' ');
-                        setMultiBrandData(prev => ({ ...prev, name: titleCaseValue }));
-                      }}
-                      onKeyPress={(e) => e.key === 'Enter' && handleAddMultiBrandCustomer()}
-                      className="text-gray-800 w-full h-10 border border-gray-300 rounded-lg px-3 focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-200 transition-all duration-200"
-                      placeholder="Enter customer full name"
-                    />
-                  </div>
+  {/* Customer Name - ALL CAPS */}
+  <div className="space-y-1">
+    <label className="block text-xs font-semibold text-gray-700 mb-1">
+      👤 Customer Name *
+    </label>
+    <input
+      type="text"
+      value={multiBrandData.name}
+      onChange={(e) => {
+        const value = e.target.value;
+        const upperCaseValue = value.toUpperCase();
+        setMultiBrandData(prev => ({ ...prev, name: upperCaseValue }));
+      }}
+      className="text-gray-800 w-full h-10 border border-gray-300 rounded-lg px-3 focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-200 transition-all duration-200 uppercase placeholder:normal-case"
+      style={{ textTransform: 'uppercase' }}
+      placeholder="Enter customer full name"
+    />
+    <p className="text-xs text-gray-500 mt-1">
+      Name will be in ALL CAPS
+    </p>
+  </div>
 
                   {/* Phone Number */}
                   <div className="space-y-1">
