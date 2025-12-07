@@ -1601,104 +1601,193 @@ const handleNameChange = (e) => {
     }
   };
 
-  // Handle actions (Print/Download) - Alternative approach
-  const handleAction = async (customerId, action) => {
-    setActionStatus(prev => ({
-      ...prev,
-      [customerId]: `${action === 'download' ? 'Downloading' : 'Printing'}...`
-    }));
-
-    try {
-      if (action === 'download') {
-        const response = await fetch(`${CUSTOMER_API}/${customerId}/download`);
-
-        if (!response.ok) {
-          throw new Error('Failed to download PDF');
+  // UNIVERSAL PRINT FUNCTION FOR ALL DEVICES
+const printUniversal = async (customer, isMultiBrand = false) => {
+  try {
+    // Determine the correct URL
+    const printUrl = isMultiBrand 
+      ? `${CUSTOMER_API}/${customer._id}/print`
+      : `${CUSTOMER_API}/${customer._id}/print`;
+    
+    // Detect device type
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+    const isTablet = /(ipad|tablet|(android(?!.*mobile))|(windows(?!.*phone)(.*touch)))/i.test(navigator.userAgent);
+    
+    if (isMobile || isTablet) {
+      // Mobile/Tablet device
+      if (isIOS) {
+        // iOS - show instructions
+        if (window.confirm(
+          `Print on ${isTablet ? 'Tablet' : 'Phone'}:\n\n` +
+          '1. PDF will open in new tab\n' +
+          '2. Tap Share button (⎋)\n' +
+          '3. Scroll and tap "Print"\n' +
+          '4. Select printer\n\n' +
+          'Click OK to continue'
+        )) {
+          window.open(printUrl, '_blank');
         }
-
-        const blob = await response.blob();
-        const url = window.URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-
-        const customer = customers.find(c => c._id === customerId);
-        link.download = `Bill_${customer.invoiceNumber}.pdf`;
-
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        window.URL.revokeObjectURL(url);
-
-        setActionStatus(prev => ({
-          ...prev,
-          [customerId]: '✅ Downloaded!'
-        }));
-
-      } else if (action === 'print') {
-        // Create a hidden iframe and trigger print immediately
-        const iframe = document.createElement('iframe');
-        iframe.style.display = 'none';
-        iframe.src = `${CUSTOMER_API}/${customerId}/print`;
-        document.body.appendChild(iframe);
-
-        // Wait for iframe to load then print
-        iframe.onload = function () {
-          try {
-            // Trigger print dialog immediately
-            iframe.contentWindow.focus();
-            iframe.contentWindow.print();
-
-            setActionStatus(prev => ({
-              ...prev,
-              [customerId]: '✅ Print dialog opened!'
-            }));
-
-            // Clean up after a delay
-            setTimeout(() => {
-              if (iframe.parentNode) {
-                document.body.removeChild(iframe);
-              }
-            }, 3000);
-
-          } catch (error) {
-            // If direct print fails, fallback to opening in new tab
-            console.warn('Direct print failed, opening in new tab:', error);
-            window.open(`${CUSTOMER_API}/${customerId}/print`, '_blank');
-            setActionStatus(prev => ({
-              ...prev,
-              [customerId]: '🖨️ Opened for printing'
-            }));
-          }
-        };
-
-        // Fallback timeout
-        setTimeout(() => {
-          if (iframe.parentNode && iframe.contentWindow) {
+      } else {
+        // Android/other mobile devices
+        const newWindow = window.open(printUrl, '_blank');
+        
+        if (newWindow) {
+          // Try auto-print after 1 second
+          setTimeout(() => {
             try {
-              iframe.contentWindow.print();
-            } catch (e) {
-              window.open(`${CUSTOMER_API}/${customerId}/print`, '_blank');
+              // Check if print is available
+              if (newWindow.print && typeof newWindow.print === 'function') {
+                newWindow.print();
+                
+                // Update status
+                if (isMultiBrand) {
+                  setMultiBrandActionStatus(prev => ({
+                    ...prev,
+                    [customer.invoiceNumber]: '✅ Printing...'
+                  }));
+                } else {
+                  setActionStatus(prev => ({
+                    ...prev,
+                    [customer._id]: '✅ Printing...'
+                  }));
+                }
+              } else {
+                // If print() not available, show download option
+                if (confirm(
+                  'Direct print not available.\n\n' +
+                  'Would you like to download the PDF first?\n' +
+                  '(Download then print from Files app)'
+                )) {
+                  // Trigger download
+                  const downloadLink = document.createElement('a');
+                  downloadLink.href = printUrl;
+                  downloadLink.download = `Bill_${customer.invoiceNumber}.pdf`;
+                  document.body.appendChild(downloadLink);
+                  downloadLink.click();
+                  document.body.removeChild(downloadLink);
+                }
+              }
+            } catch (error) {
+              console.log('Auto-print failed, manual print required');
             }
-          }
-        }, 3000);
+          }, 1000);
+        }
       }
-
-    } catch (error) {
-      console.error('Error processing action:', error);
+    } else {
+      // Desktop/Laptop - direct print with iframe
+      const iframe = document.createElement('iframe');
+      iframe.style.display = 'none';
+      iframe.src = printUrl;
+      document.body.appendChild(iframe);
+      
+      iframe.onload = function () {
+        try {
+          iframe.contentWindow.focus();
+          iframe.contentWindow.print();
+          
+          // Clean up
+          setTimeout(() => {
+            if (iframe.parentNode) {
+              document.body.removeChild(iframe);
+            }
+          }, 3000);
+          
+        } catch (error) {
+          // Fallback to new window
+          window.open(printUrl, '_blank');
+        }
+      };
+      
+      // Fallback timeout
+      setTimeout(() => {
+        if (iframe.parentNode && iframe.contentWindow) {
+          try {
+            iframe.contentWindow.print();
+          } catch (e) {
+            window.open(printUrl, '_blank');
+          }
+        }
+      }, 3000);
+    }
+    
+  } catch (error) {
+    console.error('Print error:', error);
+    
+    // Show error message
+    const errorMsg = 'Failed to print. Please try downloading first.';
+    if (isMultiBrand) {
+      setMultiBrandActionStatus(prev => ({
+        ...prev,
+        [customer.invoiceNumber]: '❌ ' + error.message
+      }));
+    } else {
       setActionStatus(prev => ({
         ...prev,
-        [customerId]: '❌ ' + error.message
+        [customer._id]: '❌ ' + error.message
       }));
     }
+    
+    // Fallback: Open in new tab
+    window.open(printUrl, '_blank');
+  }
+};
 
-    setTimeout(() => {
-      setActionStatus(prev => {
-        const newStatus = { ...prev };
-        delete newStatus[customerId];
-        return newStatus;
-      });
-    }, 5000);
-  };
+// Handle actions (Print/Download) - Universal device support
+const handleAction = async (customerId, action) => {
+  setActionStatus(prev => ({
+    ...prev,
+    [customerId]: `${action === 'download' ? 'Downloading' : 'Printing'}...`
+  }));
+
+  try {
+    if (action === 'download') {
+      const response = await fetch(`${CUSTOMER_API}/${customerId}/download`);
+
+      if (!response.ok) {
+        throw new Error('Failed to download PDF');
+      }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+
+      const customer = customers.find(c => c._id === customerId);
+      link.download = `Bill_${customer.invoiceNumber}.pdf`;
+
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+
+      setActionStatus(prev => ({
+        ...prev,
+        [customerId]: '✅ Downloaded!'
+      }));
+
+    } else if (action === 'print') {
+      const customer = customers.find(c => c._id === customerId);
+      // Universal print function for all devices
+      await printUniversal(customer, false); // false = regular bill
+    }
+
+  } catch (error) {
+    console.error('Error processing action:', error);
+    setActionStatus(prev => ({
+      ...prev,
+      [customerId]: '❌ ' + error.message
+    }));
+  }
+
+  setTimeout(() => {
+    setActionStatus(prev => {
+      const newStatus = { ...prev };
+      delete newStatus[customerId];
+      return newStatus;
+    });
+  }, 5000);
+};
 
   // ✅ FIXED: Service filter function - IMEI only for Sales
   const handleApplyFilter = () => {
@@ -3045,105 +3134,57 @@ const handleNameChange = (e) => {
     }
   };
 
-  // ✅ UPDATED: Multi-brand action handler with backend integration
-  const handleMultiBrandAction = async (customer, action) => {
-    setMultiBrandActionStatus(prev => ({
-      ...prev,
-      [customer.invoiceNumber]: `${action === 'download' ? 'Downloading' : 'Printing'}...`
-    }));
+// ✅ UPDATED: Multi-brand action handler with universal device support
+const handleMultiBrandAction = async (customer, action) => {
+  setMultiBrandActionStatus(prev => ({
+    ...prev,
+    [customer.invoiceNumber]: `${action === 'download' ? 'Downloading' : 'Printing'}...`
+  }));
 
-    try {
-      if (action === 'print') {
-        // ✅ FIXED: Use backend print route for multi-brand
-        const printUrl = `${CUSTOMER_API}/${customer._id}/print`;
+  try {
+    if (action === 'print') {
+      // Universal print function for all devices
+      await printUniversal(customer, true); // true = multi-brand
+    } else if (action === 'download') {
+      // ✅ FIXED: Use backend download route for multi-brand
+      const response = await fetch(`${CUSTOMER_API}/${customer._id}/download`);
 
-        // Create a hidden iframe and trigger print through backend
-        const iframe = document.createElement('iframe');
-        iframe.style.display = 'none';
-        iframe.src = printUrl;
-        document.body.appendChild(iframe);
-
-        // Wait for iframe to load then print
-        iframe.onload = function () {
-          try {
-            // Trigger print dialog immediately
-            iframe.contentWindow.focus();
-            iframe.contentWindow.print();
-
-            setMultiBrandActionStatus(prev => ({
-              ...prev,
-              [customer.invoiceNumber]: '✅ Print dialog opened!'
-            }));
-
-            // Clean up after a delay
-            setTimeout(() => {
-              if (iframe.parentNode) {
-                document.body.removeChild(iframe);
-              }
-            }, 3000);
-
-          } catch (error) {
-            // If direct print fails, fallback to opening in new tab
-            console.warn('Direct print failed, opening in new tab:', error);
-            window.open(printUrl, '_blank');
-            setMultiBrandActionStatus(prev => ({
-              ...prev,
-              [customer.invoiceNumber]: '🖨️ Opened for printing'
-            }));
-          }
-        };
-
-        // Fallback timeout
-        setTimeout(() => {
-          if (iframe.parentNode && iframe.contentWindow) {
-            try {
-              iframe.contentWindow.print();
-            } catch (e) {
-              window.open(printUrl, '_blank');
-            }
-          }
-        }, 3000);
-
-      } else if (action === 'download') {
-        // ✅ FIXED: Use backend download route for multi-brand
-        const response = await fetch(`${CUSTOMER_API}/${customer._id}/download`);
-
-        if (!response.ok) {
-          throw new Error('Failed to download PDF');
-        }
-
-        const blob = await response.blob();
-        const url = window.URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = `Bill_${customer.invoiceNumber}.pdf`;
-
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        window.URL.revokeObjectURL(url);
-
-        setMultiBrandActionStatus(prev => ({
-          ...prev,
-          [customer.invoiceNumber]: '✅ Downloaded!'
-        }));
+      if (!response.ok) {
+        throw new Error('Failed to download PDF');
       }
-    } catch (error) {
-      console.error('Error processing multi-brand action:', error);
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `Bill_${customer.invoiceNumber}.pdf`;
+
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+
       setMultiBrandActionStatus(prev => ({
         ...prev,
-        [customer.invoiceNumber]: '❌ ' + error.message
+        [customer.invoiceNumber]: '✅ Downloaded!'
       }));
     }
+  } catch (error) {
+    console.error('Error processing multi-brand action:', error);
+    setMultiBrandActionStatus(prev => ({
+      ...prev,
+      [customer.invoiceNumber]: '❌ ' + error.message
+    }));
+  }
 
-    setTimeout(() => {
-      setMultiBrandActionStatus(prev => {
-        const newStatus = { ...prev };
-        delete newStatus[customer.invoiceNumber];
-        return newStatus;
-      });
-    }, 5000);
-  };
+  setTimeout(() => {
+    setMultiBrandActionStatus(prev => {
+      const newStatus = { ...prev };
+      delete newStatus[customer.invoiceNumber];
+      return newStatus;
+    });
+  }, 5000);
+};
 
   // Fetch multi-brand customers from backend
   const fetchMultiBrandCustomers = async () => {
