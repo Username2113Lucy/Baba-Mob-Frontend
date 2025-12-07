@@ -4578,7 +4578,7 @@ const handleExportToExcel = () => {
                               >
                                 <div className="font-medium text-gray-800">{item.imei}</div>
                                 <div className="text-sm text-gray-600">
-                                  {item.variant?.variantName || 'N/A'} - ₹{item.cost}
+                                  {item.variant?.variantName || 'N/A'} 
                                   {item.variant?.product?.name && ` (${item.variant.product.name})`}
                                 </div>
                               </div>
@@ -5172,7 +5172,7 @@ const handleExportToExcel = () => {
                               >
                                 <div className="font-medium text-gray-800">{item.imei}</div>
                                 <div className="text-sm text-gray-600">
-                                  {item.variant?.variantName || 'N/A'} - ₹{item.cost}
+                                  {item.variant?.variantName || 'N/A'} 
                                   {item.variant?.product?.name && ` (${item.variant.product.name})`}
                                 </div>
                               </div>
