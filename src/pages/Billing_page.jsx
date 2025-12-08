@@ -2848,42 +2848,47 @@ const handleAction = async (customerId, action) => {
     }
   };
 
-  // ✅ AUTO-FILL TOTAL AMOUNT WHEN DEALER IS SELECTED
-  const handleDealerSelectForPayment = (dealerId) => {
-    const dealer = dealers.find(d => d._id === dealerId);
-    if (dealer) {
-      const balanceInfo = getDealerBalanceInfo(dealer);
-      setDealerPaymentForm(prev => ({
-        ...prev,
-        dealer: dealerId,
-        totalAmount: balanceInfo.totalWithGST.toFixed(2)
-      }));
-    }
-  };
-
-  // ✅ CALCULATE DEALER BALANCE INFO (Frontend only)
-  const getDealerBalanceInfo = (dealer) => {
+const handleDealerSelectForPayment = (dealerId) => {
+  const dealer = dealers.find(d => d._id === dealerId);
+  if (dealer) {
     const dealerStockItems = stockItems.filter(item => item.dealer?._id === dealer._id);
+    
+    // GST INCLUSIVE: Total amount already includes GST
+    const totalWithGST = dealerStockItems.reduce((sum, item) => sum + (item.cost || 0), 0);
+    
+    setDealerPaymentForm(prev => ({
+      ...prev,
+      dealer: dealerId,
+      totalAmount: totalWithGST.toFixed(2) // This is the total INCLUDING GST
+    }));
+  }
+};
 
-    // Calculate total stock cost
-    const totalStockCost = dealerStockItems.reduce((sum, item) => sum + (item.cost || 0), 0);
-    const gstAmount = totalStockCost * 0.18;
-    const totalWithGST = totalStockCost + gstAmount;
+// ✅ CORRECTED GST INCLUSIVE CALCULATION
+const getDealerBalanceInfo = (dealer) => {
+  const dealerStockItems = stockItems.filter(item => item.dealer?._id === dealer._id);
 
-    // Calculate total payments from payment details
-    const totalPayments = dealer.paymentDetails?.reduce((sum, payment) => sum + (payment.paymentMade || 0), 0) || 0;
+  // GST INCLUSIVE CALCULATION - Total amount INCLUDES 18% GST
+  const totalWithGST = dealerStockItems.reduce((sum, item) => sum + (item.cost || 0), 0); // This is the total INCLUDING GST
+  
+  // Reverse calculate taxable value and GST amount
+  const taxableValue = totalWithGST / 1.18; // Remove GST to get base value
+  const gstAmount = totalWithGST - taxableValue; // GST is the difference
 
-    // Simple balance calculation: (total + GST) - paid
-    const balance = totalWithGST - totalPayments;
+  // Calculate total payments from payment details
+  const totalPayments = dealer.paymentDetails?.reduce((sum, payment) => sum + (payment.paymentMade || 0), 0) || 0;
 
-    return {
-      totalStockCost,
-      gstAmount,
-      totalWithGST,
-      totalPayments,
-      balance
-    };
+  // Simple balance calculation: (total including GST) - paid
+  const balance = totalWithGST - totalPayments;
+
+  return {
+    totalStockCost: taxableValue, // This is now the base cost (excluding GST)
+    gstAmount: gstAmount,         // GST portion of the total
+    totalWithGST: totalWithGST,   // Total including GST (same as before)
+    totalPayments,
+    balance
   };
+};
 
   // Update the useEffect for dealers tab
   useEffect(() => {
@@ -8347,239 +8352,255 @@ Thank you for shopping with us! 🎉`
                     </form>
                   </div>
 
-                  {/* Enhanced Dealers List with Expandable Stock */}
-                  <div className="bg-white rounded-lg shadow-md overflow-hidden border border-orange-100">
-                    <div className="p-6">
-                      <div className="flex items-center justify-between mb-6">
-                        <div className="flex items-center">
-                          <div className="w-2 h-6 bg-orange-500 rounded-full mr-2"></div>
-                          <h2 className="text-xl font-bold text-gray-800">
-                            🤝 Suppliers List
-                          </h2>
-                        </div>
-                        <div className="text-sm text-gray-500 bg-orange-50 px-3 py-1 rounded-full">
-                          Total: {dealers.length} Suppliers
-                        </div>
+{/* Enhanced Dealers List with Expandable Stock */}
+<div className="bg-white rounded-lg shadow-md overflow-hidden border border-orange-100">
+  <div className="p-6">
+    <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center">
+        <div className="w-2 h-6 bg-orange-500 rounded-full mr-2"></div>
+        <h2 className="text-xl font-bold text-gray-800">
+          🤝 Suppliers List
+        </h2>
+      </div>
+      <div className="text-sm text-gray-500 bg-orange-50 px-3 py-1 rounded-full">
+        Total: {dealers.length} Suppliers
+      </div>
+    </div>
+
+    {loading ? (
+      <div className="text-center py-8">
+        <div className="text-xl">⏳</div>
+        <p className="text-gray-600">Loading Suppliers...</p>
+      </div>
+    ) : dealers.length === 0 ? (
+      <div className="text-center py-8 text-gray-500">
+        <div className="text-4xl mb-2">🏢</div>
+        <p className="text-base font-semibold mb-1">No Suppliers found</p>
+        <p className="text-xs">Add your first Supplier to get started</p>
+      </div>
+    ) : (
+      <div className="overflow-x-auto">
+        <table className="w-full border-collapse">
+          <thead>
+            <tr className="bg-gradient-to-r from-orange-500 to-amber-500">
+              <th className="border border-orange-400 px-4 py-3 text-left font-bold text-white text-sm uppercase">Supplier Details</th>
+              <th className="border border-orange-400 px-4 py-3 text-center font-bold text-white text-sm uppercase">Taxable Value</th>
+              <th className="border border-orange-400 px-4 py-3 text-center font-bold text-white text-sm uppercase">GST (18%)</th>
+              <th className="border border-orange-400 px-4 py-3 text-center font-bold text-white text-sm uppercase">Total (GST Inclusive)</th>
+              <th className="border border-orange-400 px-4 py-3 text-center font-bold text-white text-sm uppercase">Paid Amount</th>
+              <th className="border border-orange-400 px-4 py-3 text-center font-bold text-white text-sm uppercase">Balance</th>
+              <th className="border border-orange-400 px-4 py-3 text-center font-bold text-white text-sm uppercase w-50">Details</th>
+              <th className="border border-orange-400 px-4 py-3 text-center font-bold text-white text-sm uppercase w-40">🔔 Send Alert</th>
+            </tr>
+          </thead>
+          <tbody>
+            {dealers.slice().reverse().map((dealer, index) => {
+              const balanceInfo = getDealerBalanceInfo(dealer);
+              const isExpanded = expandedDealer === dealer._id;
+              const dealerStockItems = stockItems.filter(item => item.dealer?._id === dealer._id);
+
+              // ✅ GST INCLUSIVE CALCULATION
+              // Total amount already includes 18% GST
+              const totalIncludingGST = dealerStockItems.reduce((sum, item) => sum + (item.cost || 0), 0);
+              
+              // Reverse calculate to get taxable value (without GST)
+              const taxableValue = totalIncludingGST / 1.18;
+              
+              // GST amount is the difference
+              const gstAmount = totalIncludingGST - taxableValue;
+
+              return (
+                <React.Fragment key={dealer._id}>
+                  <tr
+                    className={`border-b border-gray-200 hover:bg-orange-50 transition-colors duration-200 ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`}
+                    onClick={(e) => {
+                      if (!e.target.closest('button') && !e.target.closest('input') && !e.target.closest('.no-expand')) {
+                        setExpandedDealer(isExpanded ? null : dealer._id);
+                      }
+                    }}
+                  >
+                    <td className="border border-gray-300 px-4 py-3">
+                      <div className="font-semibold text-gray-800 text-lg">{dealer.name}</div>
+                      <div className="text-xs text-gray-600 mt-1">
+                        <div>📞 {dealer.contact}</div>
+                        <div>🏷️ {dealer.gstNumber || 'No GST'}</div>
+                        <div className="mt-1 text-gray-500 max-w-md truncate">{dealer.address}</div>
                       </div>
+                    </td>
+                    
+                    {/* Taxable Value (without GST) */}
+                    <td className="border border-gray-300 px-4 py-3 text-center">
+                      <div className="text-blue-600 font-bold text-sm">
+                        ₹{taxableValue.toFixed(2)}
+                      </div>
+                    </td>
+                    
+                    {/* GST Amount */}
+                    <td className="border border-gray-300 px-4 py-3 text-center">
+                      <div className="text-purple-600 font-bold text-sm">
+                        ₹{gstAmount.toFixed(2)}
+                      </div>
+                    </td>
+                    
+                    {/* Total Including GST */}
+                    <td className="border border-gray-300 px-4 py-3 text-center">
+                      <div className="text-green-600 font-bold text-lg">
+                        ₹{totalIncludingGST.toFixed(2)}
+                      </div>
+                    </td>
+                    
+                    {/* Paid Amount */}
+                    <td className="border border-gray-300 px-4 py-3 text-center">
+                      <div className="text-green-600 font-bold text-lg">
+                        ₹{balanceInfo.totalPayments.toFixed(2)}
+                      </div>
+                    </td>
+                    
+                    {/* Balance */}
+                    <td className="border border-gray-300 px-4 py-3 text-center">
+                      <div className={`font-bold text-lg ${balanceInfo.balance > 0 ? 'text-red-600' :
+                        balanceInfo.balance < 0 ? 'text-blue-600' : 'text-gray-600'
+                        }`}>
+                        ₹{Math.abs(balanceInfo.balance).toFixed(2)}
+                      </div>
+                      <div className="text-xs text-gray-500 mt-1">
+                        {balanceInfo.balance > 0 ? 'You Owe' :
+                          balanceInfo.balance < 0 ? 'You Get' : 'Settled'}
+                      </div>
+                    </td>
 
-                      {loading ? (
-                        <div className="text-center py-8">
-                          <div className="text-xl">⏳</div>
-                          <p className="text-gray-600">Loading Suppliers...</p>
-                        </div>
-                      ) : dealers.length === 0 ? (
-                        <div className="text-center py-8 text-gray-500">
-                          <div className="text-4xl mb-2">🏢</div>
-                          <p className="text-base font-semibold mb-1">No Suppliers found</p>
-                          <p className="text-xs">Add your first Supplier to get started</p>
-                        </div>
-                      ) : (
-                        <div className="overflow-x-auto">
-                          <table className="w-full border-collapse">
-                            <thead>
-                              <tr className="bg-gradient-to-r from-orange-500 to-amber-500">
-                                <th className="border border-orange-400 px-4 py-3 text-left font-bold text-white text-sm uppercase">Supplier Details</th>
-                                <th className="border border-orange-400 px-4 py-3 text-center font-bold text-white text-sm uppercase">Total Stock Value</th>
-                                <th className="border border-orange-400 px-4 py-3 text-center font-bold text-white text-sm uppercase">GST (18%)</th>
-                                <th className="border border-orange-400 px-4 py-3 text-center font-bold text-white text-sm uppercase">Total + GST</th>
-                                <th className="border border-orange-400 px-4 py-3 text-center font-bold text-white text-sm uppercase">Paid Amount</th>
-                                <th className="border border-orange-400 px-4 py-3 text-center font-bold text-white text-sm uppercase">Balance</th>
-                                <th className="border border-orange-400 px-4 py-3 text-center font-bold text-white text-sm uppercase w-50">Details</th>
-                                <th className="border border-orange-400 px-4 py-3 text-center font-bold text-white text-sm uppercase w-40">🔔 Send Alert</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {dealers.slice().reverse().map((dealer, index) => {
-                                const balanceInfo = getDealerBalanceInfo(dealer);
-                                const isExpanded = expandedDealer === dealer._id;
-                                const dealerStockItems = stockItems.filter(item => item.dealer?._id === dealer._id);
+                    <td className="border border-gray-300 px-4 py-3 text-center">
+                      <span
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedDealerForDetails(dealer);
+                          setShowPaymentDetails(true);
+                          fetchDealerPaymentDetails(dealer._id);
+                        }}
+                        className="h-12 w-30 bg-black hover:bg-gray-700 border border-black hover:border-purple-500 text-white flex items-center justify-center px-3 py-1 rounded-lg transition-all duration-200 cursor-pointer font-semibold text-base gap-2 mx-auto"
+                      >
+                        📊 Details
+                      </span>
+                    </td>
 
-                                const totalStockCost = dealerStockItems.reduce((sum, item) => sum + (item.cost || 0), 0);
-                                const gstAmount = totalStockCost * 0.18;
-                                const totalWithGST = totalStockCost + gstAmount;
+                    <td className="border border-gray-300 px-4 py-3 text-center text-black no-expand">
+                      <DealerAlertSection
+                        dealer={dealer}
+                        onAlertSet={handleAlertSet}
+                        onAlertReset={handleAlertReset}
+                      />
+                    </td>
+                  </tr>
 
-                                return (
-                                  <>
-                                    <tr
-                                      key={dealer._id}
-                                      className={`border-b border-gray-200 hover:bg-orange-50 transition-colors duration-200 ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'
-                                        }`}
-                                      onClick={(e) => {
-                                        if (!e.target.closest('button') && !e.target.closest('input') && !e.target.closest('.no-expand')) {
-                                          setExpandedDealer(isExpanded ? null : dealer._id);
-                                        }
-                                      }}
-                                    >
-                                      <td className="border border-gray-300 px-4 py-3">
-                                        <div className="font-semibold text-gray-800 text-lg">{dealer.name}</div>
-                                        <div className="text-xs text-gray-600 mt-1">
-                                          <div>📞 {dealer.contact}</div>
-                                          <div>🏷️ {dealer.gstNumber || 'No GST'}</div>
-                                          <div className="mt-1 text-gray-500 max-w-md truncate">{dealer.address}</div>
-                                        </div>
-                                      </td>
-                                      <td className="border border-gray-300 px-4 py-3 text-center">
-                                        <div className="text-blue-600 font-bold text-sm">
-                                          ₹{totalStockCost.toFixed(2)}
-                                        </div>
-                                      </td>
-                                      <td className="border border-gray-300 px-4 py-3 text-center">
-                                        <div className="text-purple-600 font-bold text-sm">
-                                          ₹{gstAmount.toFixed(2)}
-                                        </div>
-                                      </td>
-                                      <td className="border border-gray-300 px-4 py-3 text-center">
-                                        <div className="text-green-600 font-bold text-lg">
-                                          ₹{totalWithGST.toFixed(2)}
-                                        </div>
-                                      </td>
-                                      <td className="border border-gray-300 px-4 py-3 text-center">
-                                        <div className="text-green-600 font-bold text-lg">
-                                          ₹{balanceInfo.totalPayments.toFixed(2)}
-                                        </div>
-                                      </td>
-                                      <td className="border border-gray-300 px-4 py-3 text-center">
-                                        <div className={`font-bold text-lg ${balanceInfo.balance > 0 ? 'text-red-600' :
-                                          balanceInfo.balance < 0 ? 'text-blue-600' : 'text-gray-600'
-                                          }`}>
-                                          ₹{Math.abs(balanceInfo.balance).toFixed(2)}
-                                        </div>
-                                        <div className="text-xs text-gray-500 mt-1">
-                                          {balanceInfo.balance > 0 ? 'You Owe' :
-                                            balanceInfo.balance < 0 ? 'You Get' : 'Settled'}
-                                        </div>
-                                      </td>
+                  {isExpanded && (
+                    <tr className="bg-blue-50">
+                      <td colSpan="8" className="border border-gray-300 px-4 py-4">
+                        <div className="mb-4">
+                          <h4 className="font-bold text-blue-800 text-lg mb-3">📦 Stock Items from {dealer.name}</h4>
 
-                                      <td className="border border-gray-300 px-4 py-3 text-center">
-                                        <span
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            setSelectedDealerForDetails(dealer);
-                                            setShowPaymentDetails(true);
-                                            fetchDealerPaymentDetails(dealer._id);
-                                          }}
-                                          className="h-12 w-30 bg-black hover:bg-gray-700 border border-black hover:border-purple-500 text-white flex items-center justify-center px-3 py-1 rounded-lg transition-all duration-200 cursor-pointer font-semibold text-base gap-2 mx-auto"
-                                        >
-                                          📊 Details
-                                        </span>
-                                      </td>
+                          {dealerStockItems.length === 0 ? (
+                            <div className="text-center py-4 text-gray-500">
+                              <div className="text-2xl mb-2">📭</div>
+                              <p>No stock items found for this Supplier</p>
+                            </div>
+                          ) : (
+                            <div className="overflow-x-auto h-100">
+                              <table className="w-full border-collapse">
+                                <thead>
+                                  <tr className="bg-gradient-to-r from-blue-400 to-blue-500">
+                                    <th className="border border-blue-300 px-3 py-2 text-left font-bold text-white text-xs uppercase">IMEI</th>
+                                    <th className="border border-blue-300 px-3 py-2 text-left font-bold text-white text-xs uppercase">Brand</th>
+                                    <th className="border border-blue-300 px-3 py-2 text-left font-bold text-white text-xs uppercase">Model</th>
+                                    <th className="border border-blue-300 px-3 py-2 text-left font-bold text-white text-xs uppercase">HSN</th>
+                                    <th className="border border-blue-300 px-3 py-2 text-center font-bold text-white text-xs uppercase">Taxable Value (₹)</th>
+                                    <th className="border border-blue-300 px-3 py-2 text-center font-bold text-white text-xs uppercase">GST (₹)</th>
+                                    <th className="border border-blue-300 px-3 py-2 text-center font-bold text-white text-xs uppercase">Total (₹)</th>
+                                    <th className="border border-blue-300 px-3 py-2 text-center font-bold text-white text-xs uppercase">Status</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {dealerStockItems.map((stockItem, stockIndex) => {
+                                    // ✅ GST INCLUSIVE for individual items
+                                    const itemTotal = stockItem.cost || 0; // This includes GST
+                                    const itemTaxableValue = itemTotal / 1.18; // Base without GST
+                                    const itemGST = itemTotal - itemTaxableValue; // GST amount
 
-                                      <td className="border border-gray-300 px-4 py-3 text-center text-black no-expand">
-                                        <DealerAlertSection
-                                          dealer={dealer}
-                                          onAlertSet={handleAlertSet}
-                                          onAlertReset={handleAlertReset}
-                                        />
-                                      </td>
-                                    </tr>
-
-                                    {isExpanded && (
-                                      <tr className="bg-blue-50">
-                                        <td colSpan="8" className="border border-gray-300 px-4 py-4">
-                                          <div className="mb-4">
-                                            <h4 className="font-bold text-blue-800 text-lg mb-3">📦 Stock Items from {dealer.name}</h4>
-
-                                            {dealerStockItems.length === 0 ? (
-                                              <div className="text-center py-4 text-gray-500">
-                                                <div className="text-2xl mb-2">📭</div>
-                                                <p>No stock items found for this Supplier</p>
-                                              </div>
-                                            ) : (
-                                              <div className="overflow-x-auto h-100">
-                                                <table className="w-full border-collapse">
-                                                  <thead>
-                                                    <tr className="bg-gradient-to-r from-blue-400 to-blue-500">
-                                                      <th className="border border-blue-300 px-3 py-2 text-left font-bold text-white text-xs uppercase">IMEI</th>
-                                                      <th className="border border-blue-300 px-3 py-2 text-left font-bold text-white text-xs uppercase">Brand</th>
-                                                      <th className="border border-blue-300 px-3 py-2 text-left font-bold text-white text-xs uppercase">Model</th>
-                                                      <th className="border border-blue-300 px-3 py-2 text-left font-bold text-white text-xs uppercase">HSN</th>
-                                                      <th className="border border-blue-300 px-3 py-2 text-center font-bold text-white text-xs uppercase">Cost (₹)</th>
-                                                      <th className="border border-blue-300 px-3 py-2 text-center font-bold text-white text-xs uppercase">GST (18%)</th>
-                                                      <th className="border border-blue-300 px-3 py-2 text-center font-bold text-white text-xs uppercase">Total (₹)</th>
-                                                      <th className="border border-blue-300 px-3 py-2 text-center font-bold text-white text-xs uppercase">Status</th>
-                                                    </tr>
-                                                  </thead>
-                                                  <tbody>
-                                                    {dealerStockItems.map((stockItem, stockIndex) => {
-                                                      const itemGST = (stockItem.cost || 0) * 0.18;
-                                                      const itemTotal = (stockItem.cost || 0) + itemGST;
-
-                                                      return (
-                                                        <tr
-                                                          key={stockItem._id}
-                                                          className={`border-b border-gray-200 hover:bg-blue-100 transition-colors duration-150 ${stockIndex % 2 === 0 ? 'bg-white' : 'bg-blue-50'
-                                                            }`}
-                                                        >
-                                                          <td className="border border-gray-300 px-3 py-2 font-mono text-blue-600 bg-blue-50 text-xs">
-                                                            {stockItem.imei || 'N/A'}
-                                                          </td>
-                                                          <td className="border border-gray-200 px-3 py-2 whitespace-nowrap text-gray-800 font-medium text-sm">
-                                                            {stockItem.product?.name || 'N/A'}
-                                                          </td>
-                                                          <td className="border border-gray-300 px-3 py-2 whitespace-nowrap text-gray-700 text-sm">
-                                                            {stockItem.variant?.variantName || 'N/A'}
-                                                          </td>
-                                                          <td className="border border-gray-300 px-3 py-2 font-mono whitespace-nowrap text-gray-700 text-sm">
-                                                            {stockItem.hsn || 'N/A'}
-                                                          </td>
-                                                          <td className="border border-gray-300 px-3 py-2 font-semibold whitespace-nowrap text-blue-600 text-sm text-center">
-                                                            ₹{(stockItem.cost || 0).toFixed(2)}
-                                                          </td>
-                                                          <td className="border border-gray-300 px-3 py-2 font-semibold whitespace-nowrap text-purple-600 text-sm text-center">
-                                                            ₹{itemGST.toFixed(2)}
-                                                          </td>
-                                                          <td className="border border-gray-300 px-3 py-2 font-semibold whitespace-nowrap text-green-600 text-base text-center">
-                                                            ₹{itemTotal.toFixed(2)}
-                                                          </td>
-                                                          <td className="border border-gray-300 px-3 py-2 whitespace-nowrap text-center">
-                                                            <span className={`inline-flex items-center justify-center px-2.5 py-0.5 rounded-full text-xs font-medium ${stockItem.status === 'sold'
-                                                              ? 'bg-red-100 text-red-800 border border-red-200'
-                                                              : 'bg-green-100 text-green-800 border border-green-200'
-                                                              }`}>
-                                                              {stockItem.status === 'sold' ? '🔴 Sold' : '📦 In Stock'}
-                                                            </span>
-                                                          </td>
-                                                        </tr>
-                                                      );
-                                                    })}
-                                                  </tbody>
-                                                  <tfoot>
-                                                    <tr className="bg-blue-100">
-                                                      <td colSpan="4" className="border border-gray-300 px-3 py-2 text-right font-bold text-gray-800">
-                                                        Totals:
-                                                      </td>
-                                                      <td className="border border-gray-300 px-3 py-2 text-center font-bold text-blue-700">
-                                                        ₹{totalStockCost.toFixed(2)}
-                                                      </td>
-                                                      <td className="border border-gray-300 px-3 py-2 text-center font-bold text-purple-700">
-                                                        ₹{gstAmount.toFixed(2)}
-                                                      </td>
-                                                      <td className="border border-gray-300 px-3 py-2 text-center font-bold text-green-700">
-                                                        ₹{totalWithGST.toFixed(2)}
-                                                      </td>
-                                                      <td className="border border-gray-300 px-3 py-2 text-center">
-                                                        <div className="text-xs text-gray-600">
-                                                          {dealerStockItems.filter(item => item.status === 'in_stock').length} in stock
-                                                        </div>
-                                                      </td>
-                                                    </tr>
-                                                  </tfoot>
-                                                </table>
-                                              </div>
-                                            )}
-                                          </div>
+                                    return (
+                                      <tr
+                                        key={stockItem._id}
+                                        className={`border-b border-gray-200 hover:bg-blue-100 transition-colors duration-150 ${stockIndex % 2 === 0 ? 'bg-white' : 'bg-blue-50'
+                                          }`}
+                                      >
+                                        <td className="border border-gray-300 px-3 py-2 font-mono text-blue-600 bg-blue-50 text-xs">
+                                          {stockItem.imei || 'N/A'}
+                                        </td>
+                                        <td className="border border-gray-200 px-3 py-2 whitespace-nowrap text-gray-800 font-medium text-sm">
+                                          {stockItem.product?.name || 'N/A'}
+                                        </td>
+                                        <td className="border border-gray-300 px-3 py-2 whitespace-nowrap text-gray-700 text-sm">
+                                          {stockItem.variant?.variantName || 'N/A'}
+                                        </td>
+                                        <td className="border border-gray-300 px-3 py-2 font-mono whitespace-nowrap text-gray-700 text-sm">
+                                          {stockItem.hsn || 'N/A'}
+                                        </td>
+                                        <td className="border border-gray-300 px-3 py-2 font-semibold whitespace-nowrap text-blue-600 text-sm text-center">
+                                          ₹{itemTaxableValue.toFixed(2)}
+                                        </td>
+                                        <td className="border border-gray-300 px-3 py-2 font-semibold whitespace-nowrap text-purple-600 text-sm text-center">
+                                          ₹{itemGST.toFixed(2)}
+                                        </td>
+                                        <td className="border border-gray-300 px-3 py-2 font-semibold whitespace-nowrap text-green-600 text-base text-center">
+                                          ₹{itemTotal.toFixed(2)}
+                                        </td>
+                                        <td className="border border-gray-300 px-3 py-2 whitespace-nowrap text-center">
+                                          <span className={`inline-flex items-center justify-center px-2.5 py-0.5 rounded-full text-xs font-medium ${stockItem.status === 'sold'
+                                            ? 'bg-red-100 text-red-800 border border-red-200'
+                                            : 'bg-green-100 text-green-800 border border-green-200'
+                                            }`}>
+                                            {stockItem.status === 'sold' ? '🔴 Sold' : '📦 In Stock'}
+                                          </span>
                                         </td>
                                       </tr>
-                                    )}
-                                  </>
-                                );
-                              })}
-                            </tbody>
-                          </table>
+                                    );
+                                  })}
+                                </tbody>
+                                <tfoot>
+                                  <tr className="bg-blue-100">
+                                    <td colSpan="4" className="border border-gray-300 px-3 py-2 text-right font-bold text-gray-800">
+                                      Totals:
+                                    </td>
+                                    <td className="border border-gray-300 px-3 py-2 text-center font-bold text-blue-700">
+                                      ₹{taxableValue.toFixed(2)}
+                                    </td>
+                                    <td className="border border-gray-300 px-3 py-2 text-center font-bold text-purple-700">
+                                      ₹{gstAmount.toFixed(2)}
+                                    </td>
+                                    <td className="border border-gray-300 px-3 py-2 text-center font-bold text-green-700">
+                                      ₹{totalIncludingGST.toFixed(2)}
+                                    </td>
+                                    <td className="border border-gray-300 px-3 py-2 text-center">
+                                      <div className="text-xs text-gray-600">
+                                        {dealerStockItems.filter(item => item.status === 'in_stock').length} in stock
+                                      </div>
+                                    </td>
+                                  </tr>
+                                </tfoot>
+                              </table>
+                            </div>
+                          )}
                         </div>
-                      )}
-                    </div>
-                  </div>
+                      </td>
+                    </tr>
+                  )}
+                </React.Fragment>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    )}
+  </div>
+</div>
 
                   {/* Payment Details Modal */}
                   {showPaymentDetails && selectedDealerForDetails && (
