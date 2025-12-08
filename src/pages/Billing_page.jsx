@@ -333,9 +333,9 @@ export const Billing_page = () => {
 
   // Define your passwords (you might want to make these configurable)
   const SECTION_PASSWORDS = {
-    salesItemPage: 'SalesItem@123',
-    salesStockTable: 'StockTable@123',
-    serviceItemPage: 'ServiceItem@123'
+    salesItemPage: 'Baaba#3',
+    salesStockTable: 'Baaba@2',
+    serviceItemPage: 'Baaba^6'
   };
 
   // Password handler
@@ -380,8 +380,8 @@ const [summaryPasswordErrors, setSummaryPasswordErrors] = useState({
 // Password constants
 const SUMMARY_PASSWORDS = {
   sales: 'Baaba!1',      // Sales Income Summary password
-  service: 'Baaba@2',    // Service Income Summary password  
-  multibrand: 'Baaba#3'  // Multibrand Income Summary password
+  service: 'Baaba%5',    // Service Income Summary password  
+  multibrand: 'Baaba$4'  // Multibrand Income Summary password
 };
 
 // Password handler for summaries
