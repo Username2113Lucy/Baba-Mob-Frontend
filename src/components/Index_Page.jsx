@@ -224,12 +224,12 @@ export const Index_Page = ({ user, onLogout }) => {
         <div className="px-3 py-2 text-xs text-gray-500 bg-gray-50 rounded">
           💡 You will stay logged in for 30 days
         </div>
-        <button
-          onClick={onLogout}
-          className="w-full text-center h-12 px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded transition-colors"
-        >
-          Logout
-        </button>
+<span
+  onClick={onLogout}
+  className="w-full text-center h-12 px-3 py-2 text-md font-bold bg-black hover:bg-black text-red-500 hover:text-red-400 border border-red-500 hover:border-red-700 rounded-lg transition-colors cursor-pointer flex items-center justify-center"
+>
+  Logout
+</span>
       </div>
     </div>
   );
@@ -255,22 +255,22 @@ export const Index_Page = ({ user, onLogout }) => {
           </div>
         </div>
 
-        {/* Right - User Menu */}
-        <div className="mr-7 user-menu-container relative">
-          <button
-            onClick={() => setShowUserMenu(!showUserMenu)}
-            className="flex items-center space-x-2 bg-orange-700 hover:bg-orange-800 px-3 py-1 rounded-lg transition-colors"
-          >
-            <div className="w-6 h-6 bg-white rounded-full flex items-center justify-center">
-              <span className="text-orange-600 text-sm font-bold">
-                {user?.initial || 'U'}
-              </span>
-            </div>
-            <span className="text-xs font-medium">{user?.username}</span>
-          </button>
+{/* Right - User Menu */}
+<div className="mr-7 user-menu-container relative">
+  <span
+    onClick={() => setShowUserMenu(!showUserMenu)}
+    className="flex items-center h-12 w-23 space-x-2 bg-black hover:bg-black border border-black hover:border-blue-500 px-3 py-1 rounded-lg transition-colors cursor-pointer"
+  >
+    <div className="w-6 h-6 bg-white rounded-full flex items-center justify-center">
+      <span className="text-orange-600 text-sm font-bold">
+        {user?.initial || 'U'}
+      </span>
+    </div>
+    <span className="text-xs font-medium">{user?.username}</span>
+  </span>
 
-          {showUserMenu && renderUserMenu()}
-        </div>
+  {showUserMenu && renderUserMenu()}
+</div>
       </header>
     </div>
   );

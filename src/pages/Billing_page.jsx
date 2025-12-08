@@ -358,6 +358,57 @@ export const Billing_page = () => {
     setPasswords(prev => ({ ...prev, [section]: '' }));
   };
 
+  // Add these with your other state variables
+const [summaryPasswords, setSummaryPasswords] = useState({
+  sales: '',
+  service: '',
+  multibrand: ''
+});
+
+const [unlockedSummaries, setUnlockedSummaries] = useState({
+  sales: false,
+  service: false,
+  multibrand: false
+});
+
+const [summaryPasswordErrors, setSummaryPasswordErrors] = useState({
+  sales: '',
+  service: '',
+  multibrand: ''
+});
+
+// Password constants
+const SUMMARY_PASSWORDS = {
+  sales: 'Baaba!1',      // Sales Income Summary password
+  service: 'Baaba@2',    // Service Income Summary password  
+  multibrand: 'Baaba#3'  // Multibrand Income Summary password
+};
+
+// Password handler for summaries
+const handleSummaryPasswordSubmit = (summaryType) => {
+  if (summaryPasswords[summaryType] === SUMMARY_PASSWORDS[summaryType]) {
+    setUnlockedSummaries(prev => ({ ...prev, [summaryType]: true }));
+    setSummaryPasswordErrors(prev => ({ ...prev, [summaryType]: '' }));
+  } else {
+    // Clear the password field and show lock screen message
+    setSummaryPasswords(prev => ({ ...prev, [summaryType]: '' }));
+    setSummaryPasswordErrors(prev => ({ 
+      ...prev, 
+      [summaryType]: 'incorrect' 
+    }));
+  }
+};
+
+const handleSummaryPasswordChange = (summaryType, value) => {
+  setSummaryPasswords(prev => ({ ...prev, [summaryType]: value }));
+  setSummaryPasswordErrors(prev => ({ ...prev, [summaryType]: '' }));
+};
+
+const lockSummary = (summaryType) => {
+  setUnlockedSummaries(prev => ({ ...prev, [summaryType]: false }));
+  setSummaryPasswords(prev => ({ ...prev, [summaryType]: '' }));
+};
+
   // You can add this state for better error handling
   const [cashierLoading, setCashierLoading] = useState(false);
   // ✅ ADD THESE STATE DECLARATIONS FOR CASHIERS
@@ -6524,40 +6575,97 @@ const handleExportToExcel = () => {
                 </div>
               </div>
 
-              {/* Multibrand Income Summary */}
-              {(activeTab === 'multibrand' && shopType === 'sales') ||
-                (activeTab === 'filter' && shopType === 'sales' && salesFilterTab === 'multibrand') ? (
-                <div className="bg-white rounded-xl p-4 shadow-lg mt-4 border border-orange-200">
-                  <h3 className="text-lg font-bold mb-4 text-center text-gray-800">
-                    💰 MULTI-BRAND INCOME SUMMARY
-                  </h3>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-center">
-                    <div className="bg-orange-50 rounded-lg p-3 border border-orange-200">
-                      <div className="text-2xl font-bold mb-2 text-green-600">
-                        ₹{profitData.multibrand.totalRevenue.toFixed(2)}
-                      </div>
-                      <div className="text-sm font-semibold mb-1 text-gray-700">Multibrand Income</div>
-                      <div className="text-xs text-gray-600">Total multibrand revenue</div>
-                    </div>
+{/* Multibrand Income Summary */}
+{(activeTab === 'multibrand' && shopType === 'sales') ||
+  (activeTab === 'filter' && shopType === 'sales' && salesFilterTab === 'multibrand') ? (
+  <div className="bg-white rounded-xl p-4 shadow-lg mt-4 border border-orange-200">
+    {/* Header - Title centered */}
+    <div className="relative mb-4">
+      <div className="text-center">
+        <div className="flex items-center justify-center gap-3">
+          <span className="text-2xl">💰</span>
+          <h3 className="text-lg font-bold text-gray-800">
+            MULTI-BRAND INCOME SUMMARY
+          </h3>
+        </div>
+      </div>
+      
+      {/* Password section - Right side */}
+      <div className="absolute right-0 top-1/2 transform -translate-y-1/2">
+        {!unlockedSummaries.multibrand ? (
+          <div className="flex items-center gap-2">
+            <div className="relative">
+              <input
+                type="password"
+                value={summaryPasswords.multibrand}
+                onChange={(e) => handleSummaryPasswordChange('multibrand', e.target.value)}
+                onKeyPress={(e) => e.key === 'Enter' && handleSummaryPasswordSubmit('multibrand')}
+                placeholder="Enter password"
+                className={`w-40 h-10 border text-black rounded-lg px-3 py-2 focus:outline-none ${
+                  summaryPasswordErrors.multibrand === 'incorrect'
+                    ? 'border-red-500 focus:border-red-500 bg-red-50' 
+                    : 'border-gray-300 focus:border-[#8b1108]'
+                }`}
+              />
+            </div>
+<span
+  onClick={() => handleSummaryPasswordSubmit('multibrand')}
+  className="h-10 bg-[#8b1108] text-white px-4 py-2 rounded-lg hover:bg-[#a8322a] transition-colors font-medium cursor-pointer flex items-center justify-center"
+>
+  Apply
+</span>
+          </div>
+        ) : (
+<span
+  onClick={() => lockSummary('multibrand')}
+  className="h-10 bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors font-medium flex items-center gap-2 cursor-pointer justify-center"
+>
+  🔒 Lock
+</span>
+        )}
+      </div>
+    </div>
+    
+    {/* Summary Content - Only show when unlocked */}
+    {unlockedSummaries.multibrand ? (
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-center">
+        <div className="bg-orange-50 rounded-lg p-3 border border-orange-200">
+          <div className="text-2xl font-bold mb-2 text-green-600">
+            ₹{profitData.multibrand.totalRevenue.toFixed(2)}
+          </div>
+          <div className="text-sm font-semibold mb-1 text-gray-700">Multibrand Income</div>
+          <div className="text-xs text-gray-600">Total multibrand revenue</div>
+        </div>
 
-                    <div className="bg-orange-50 rounded-lg p-3 border border-orange-200">
-                      <div className={`text-2xl font-bold mb-2 ${profitData.multibrand.dailyProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                        ₹{profitData.multibrand.dailyProfit.toFixed(2)}
-                      </div>
-                      <div className="text-sm font-semibold mb-1 text-gray-700">Daily Profit</div>
-                      <div className="text-xs text-gray-600">Today's profit margin</div>
-                    </div>
+        <div className="bg-orange-50 rounded-lg p-3 border border-orange-200">
+          <div className={`text-2xl font-bold mb-2 ${profitData.multibrand.dailyProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+            ₹{profitData.multibrand.dailyProfit.toFixed(2)}
+          </div>
+          <div className="text-sm font-semibold mb-1 text-gray-700">Daily Profit</div>
+          <div className="text-xs text-gray-600">Today's profit margin</div>
+        </div>
 
-                    <div className="bg-orange-50 rounded-lg p-3 border border-orange-200">
-                      <div className={`text-2xl font-bold mb-2 ${profitData.multibrand.monthlyProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                        ₹{profitData.multibrand.monthlyProfit.toFixed(2)}
-                      </div>
-                      <div className="text-sm font-semibold mb-1 text-gray-700">Monthly Profit</div>
-                      <div className="text-xs text-gray-600">This month's profit</div>
-                    </div>
-                  </div>
-                </div>
-              ) : null}
+        <div className="bg-orange-50 rounded-lg p-3 border border-orange-200">
+          <div className={`text-2xl font-bold mb-2 ${profitData.multibrand.monthlyProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+            ₹{profitData.multibrand.monthlyProfit.toFixed(2)}
+          </div>
+          <div className="text-sm font-semibold mb-1 text-gray-700">Monthly Profit</div>
+          <div className="text-xs text-gray-600">This month's profit</div>
+        </div>
+      </div>
+    ) : (
+      <div className="text-center py-6">
+        <div className="text-4xl mb-2">🔒</div>
+        {summaryPasswordErrors.multibrand ? (
+          <p className="text-red-500 font-medium">Incorrect password! Enter correct password to view multibrand income summary</p>
+        ) : (
+          <p className="text-gray-500">Enter password to view multibrand income summary</p>
+        )}
+        <p className="text-sm text-gray-400 mt-1">Password: Baaba#3</p>
+      </div>
+    )}
+  </div>
+) : null}
             </>
           ) : null}
 
@@ -8928,73 +9036,187 @@ Thank you for shopping with us! 🎉`
               </div>
             </div>
 
-            {/* Service Income Summary */}
-            {shopType === 'service' && (
-              <div className="bg-white rounded-xl p-4 shadow-lg mt-4 border border-orange-200">
-                <h3 className="text-lg font-bold mb-4 text-center text-gray-800">
-                  💰 SERVICE INCOME SUMMARY
-                </h3>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-center">
-                  <div className="bg-orange-50 rounded-lg p-3 border border-orange-200 transform hover:scale-105 transition-transform duration-300">
-                    <div className="text-xl font-bold mb-2 text-gray-800">
-                      ₹{profitData.service.todayIncome.toFixed(2)}
-                    </div>
-                    <div className="text-sm font-semibold mb-1 text-gray-700">Today's Income</div>
-                    <div className="text-xs text-gray-600">Paid amounts today</div>
-                  </div>
+{/* Service Income Summary */}
+{shopType === 'service' && (
+  <div className="bg-white rounded-xl p-4 shadow-lg mt-4 border border-orange-200">
+    {/* Header - Title centered */}
+    <div className="relative mb-4">
+      <div className="text-center">
+        <div className="flex items-center justify-center gap-3">
+          <span className="text-2xl">💰</span>
+          <h3 className="text-lg font-bold text-gray-800">
+            SERVICE INCOME SUMMARY
+          </h3>
+        </div>
+      </div>
+      
+      {/* Password section - Right side */}
+      <div className="absolute right-0 top-1/2 transform -translate-y-1/2">
+        {!unlockedSummaries.service ? (
+          <div className="flex items-center gap-2">
+            <div className="relative">
+              <input
+                type="password"
+                value={summaryPasswords.service}
+                onChange={(e) => handleSummaryPasswordChange('service', e.target.value)}
+                onKeyPress={(e) => e.key === 'Enter' && handleSummaryPasswordSubmit('service')}
+                placeholder="Enter password"
+                className={`w-40 h-10 border text-black rounded-lg px-3 py-2 focus:outline-none ${
+                  summaryPasswordErrors.service === 'incorrect'
+                    ? 'border-red-500 focus:border-red-500 bg-red-50' 
+                    : 'border-gray-300 focus:border-[#8b1108]'
+                }`}
+              />
+            </div>
+<span
+  onClick={() => handleSummaryPasswordSubmit('service')}
+  className="h-10 bg-[#8b1108] text-white px-4 py-2 rounded-lg hover:bg-[#a8322a] transition-colors font-medium cursor-pointer flex items-center justify-center"
+>
+  Apply
+</span>
+          </div>
+        ) : (
+<span
+  onClick={() => lockSummary('service')}
+  className="h-10 bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors font-medium flex items-center gap-2 cursor-pointer justify-center"
+>
+  🔒 Lock
+</span>
+        )}
+      </div>
+    </div>
+    
+    {/* Summary Content - Only show when unlocked */}
+    {unlockedSummaries.service ? (
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-center">
+        <div className="bg-orange-50 rounded-lg p-3 border border-orange-200 transform hover:scale-105 transition-transform duration-300">
+          <div className="text-xl font-bold mb-2 text-gray-800">
+            ₹{profitData.service.todayIncome.toFixed(2)}
+          </div>
+          <div className="text-sm font-semibold mb-1 text-gray-700">Today's Income</div>
+          <div className="text-xs text-gray-600">Paid amounts today</div>
+        </div>
 
-                  <div className="bg-orange-50 rounded-lg p-3 border border-orange-200 transform hover:scale-105 transition-transform duration-300">
-                    <div className="text-xl font-bold mb-2 text-red-600">
-                      ₹{profitData.service.pendingBalance.toFixed(2)}
-                    </div>
-                    <div className="text-sm font-semibold mb-1 text-gray-700">Pending Balance</div>
-                    <div className="text-xs text-gray-600">Awaiting payment</div>
-                  </div>
+        <div className="bg-orange-50 rounded-lg p-3 border border-orange-200 transform hover:scale-105 transition-transform duration-300">
+          <div className="text-xl font-bold mb-2 text-red-600">
+            ₹{profitData.service.pendingBalance.toFixed(2)}
+          </div>
+          <div className="text-sm font-semibold mb-1 text-gray-700">Pending Balance</div>
+          <div className="text-xs text-gray-600">Awaiting payment</div>
+        </div>
 
-                  <div className="bg-orange-50 rounded-lg p-3 border border-orange-200 transform hover:scale-105 transition-transform duration-300">
-                    <div className="text-xl font-bold mb-2 text-green-600">
-                      ₹{profitData.service.totalRevenue.toFixed(2)}
-                    </div>
-                    <div className="text-sm font-semibold mb-1 text-gray-700">Service Income</div>
-                    <div className="text-xs text-gray-600">Total service revenue</div>
-                  </div>
-                </div>
-              </div>
-            )}
+        <div className="bg-orange-50 rounded-lg p-3 border border-orange-200 transform hover:scale-105 transition-transform duration-300">
+          <div className="text-xl font-bold mb-2 text-green-600">
+            ₹{profitData.service.totalRevenue.toFixed(2)}
+          </div>
+          <div className="text-sm font-semibold mb-1 text-gray-700">Service Income</div>
+          <div className="text-xs text-gray-600">Total service revenue</div>
+        </div>
+      </div>
+    ) : (
+      <div className="text-center py-6">
+        <div className="text-4xl mb-2">🔒</div>
+        {summaryPasswordErrors.service ? (
+          <p className="text-red-500 font-medium">Incorrect password! Enter correct password to view service income summary</p>
+        ) : (
+          <p className="text-gray-500">Enter password to view service income summary</p>
+        )}
+        <p className="text-sm text-gray-400 mt-1">Password: Baaba@2</p>
+      </div>
+    )}
+  </div>
+)}
 
-            {/* Sales Income Summary */}
-            {shopType === 'sales' && activeTab !== 'multibrand' && (
-              <div className="bg-white rounded-xl p-4 shadow-lg mt-4 border border-orange-200">
-                <h3 className="text-lg font-bold mb-4 text-center text-gray-800">
-                  💰 SALES INCOME SUMMARY
-                </h3>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-center">
-                  <div className="bg-orange-50 rounded-lg p-3 border border-orange-200 transform hover:scale-105 transition-transform duration-300">
-                    <div className="text-2xl font-bold mb-2 text-green-600">
-                      ₹{profitData.sales.totalRevenue.toFixed(2)}
-                    </div>
-                    <div className="text-sm font-semibold mb-1 text-gray-700">Sales Income</div>
-                    <div className="text-xs text-gray-600">Total sales revenue</div>
-                  </div>
+{/* Sales Income Summary */}
+{shopType === 'sales' && activeTab !== 'multibrand' && (
+  <div className="bg-white rounded-xl p-4 shadow-lg mt-4 border border-orange-200">
+    {/* Header - Title centered */}
+    <div className="relative mb-4">
+      <div className="text-center">
+        <div className="flex items-center justify-center gap-3">
+          <span className="text-2xl">💰</span>
+          <h3 className="text-lg font-bold text-gray-800">
+            SALES INCOME SUMMARY
+          </h3>
+        </div>
+      </div>
+      
+      {/* Password section - Right side */}
+      <div className="absolute right-0 top-1/2 transform -translate-y-1/2">
+        {!unlockedSummaries.sales ? (
+          <div className="flex items-center gap-2">
+            <div className="relative">
+              <input
+                type="password"
+                value={summaryPasswords.sales}
+                onChange={(e) => handleSummaryPasswordChange('sales', e.target.value)}
+                onKeyPress={(e) => e.key === 'Enter' && handleSummaryPasswordSubmit('sales')}
+                placeholder="Enter password"
+                className={`w-40 h-10 border text-black rounded-lg px-3 py-2 focus:outline-none ${
+                  summaryPasswordErrors.sales === 'incorrect'
+                    ? 'border-red-500 focus:border-red-500 bg-red-50' 
+                    : 'border-gray-300 focus:border-[#8b1108]'
+                }`}
+              />
+            </div>
+<span
+  onClick={() => handleSummaryPasswordSubmit('sales')}
+  className="h-10 bg-[#8b1108] text-white px-4 py-2 rounded-lg hover:bg-[#a8322a] transition-colors font-medium cursor-pointer flex items-center justify-center"
+>
+  Apply
+</span>
+          </div>
+        ) : (
+<span
+  onClick={() => lockSummary('sales')}
+  className="h-10 bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors font-medium flex items-center gap-2 cursor-pointer justify-center"
+>
+  🔒 Lock
+</span>
+        )}
+      </div>
+    </div>
+    
+    {/* Summary Content - Only show when unlocked */}
+    {unlockedSummaries.sales ? (
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-center">
+        <div className="bg-orange-50 rounded-lg p-3 border border-orange-200 transform hover:scale-105 transition-transform duration-300">
+          <div className="text-2xl font-bold mb-2 text-green-600">
+            ₹{profitData.sales.totalRevenue.toFixed(2)}
+          </div>
+          <div className="text-sm font-semibold mb-1 text-gray-700">Sales Income</div>
+          <div className="text-xs text-gray-600">Total sales revenue</div>
+        </div>
 
-                  <div className="bg-orange-50 rounded-lg p-3 border border-orange-200 transform hover:scale-105 transition-transform duration-300">
-                    <div className={`text-2xl font-bold mb-2 ${profitData.sales.dailyProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                      ₹{profitData.sales.dailyProfit.toFixed(2)}
-                    </div>
-                    <div className="text-sm font-semibold mb-1 text-gray-700">Daily Profit</div>
-                    <div className="text-xs text-gray-600">Today's profit margin</div>
-                  </div>
+        <div className="bg-orange-50 rounded-lg p-3 border border-orange-200 transform hover:scale-105 transition-transform duration-300">
+          <div className={`text-2xl font-bold mb-2 ${profitData.sales.dailyProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+            ₹{profitData.sales.dailyProfit.toFixed(2)}
+          </div>
+          <div className="text-sm font-semibold mb-1 text-gray-700">Daily Profit</div>
+          <div className="text-xs text-gray-600">Today's profit margin</div>
+        </div>
 
-                  <div className="bg-orange-50 rounded-lg p-3 border border-orange-200 transform hover:scale-105 transition-transform duration-300">
-                    <div className={`text-2xl font-bold mb-2 ${profitData.sales.monthlyProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                      ₹{profitData.sales.monthlyProfit.toFixed(2)}
-                    </div>
-                    <div className="text-sm font-semibold mb-1 text-gray-700">Monthly Profit</div>
-                    <div className="text-xs text-gray-600">This month's profit</div>
-                  </div>
-                </div>
-              </div>
-            )}
+        <div className="bg-orange-50 rounded-lg p-3 border border-orange-200 transform hover:scale-105 transition-transform duration-300">
+          <div className={`text-2xl font-bold mb-2 ${profitData.sales.monthlyProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+            ₹{profitData.sales.monthlyProfit.toFixed(2)}
+          </div>
+          <div className="text-sm font-semibold mb-1 text-gray-700">Monthly Profit</div>
+          <div className="text-xs text-gray-600">This month's profit</div>
+        </div>
+      </div>
+    ) : (
+      <div className="text-center py-6">
+        <div className="text-4xl mb-2">🔒</div>
+        {summaryPasswordErrors.sales ? (
+          <p className="text-red-500 font-medium">Incorrect password! Enter correct password to view sales income summary</p>
+        ) : (
+          <p className="text-gray-500">Enter password to view sales income summary</p>
+        )}
+        <p className="text-sm text-gray-400 mt-1">Password: Baaba!1</p>
+      </div>
+    )}
+  </div>
+)}
 
           </>
           )}
